@@ -64,7 +64,7 @@ export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
     "https://www.w3.org/ns/credentials/v2",
     "https://helena-unda-bounceably.ngrok-free.dev/contexts/iu-edu-degree-v1.jsonld"
   ],
-  type: ["VerifiableCredential", "IUEducationDegreeCredential"],
+  type: ["VerifiableCredential", "VNEduDegreeCredential"],
   id: "urn:uuid:example-degree-2025",
   issuer: "did:web:helena-unda-bounceably.ngrok-free.dev:issuers:iu",
   validFrom: "2025-06-01T00:00:00Z",
