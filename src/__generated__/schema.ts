@@ -60,31 +60,37 @@ export interface MerkleReceipt {
 
 // Example runtime value using the generated interface to avoid 'unused' export warnings
 export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
-  "@context": ["https://www.w3.org/ns/credentials/v2"],
-  type: ["VerifiableCredential", "UniversityDegreeCredential"],
-  id: "urn:uuid:example-1234",
-  issuer: "did:web:uni.example.edu",
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://helena-unda-bounceably.ngrok-free.dev/contexts/iu-edu-degree-v1.jsonld"
+  ],
+  type: ["VerifiableCredential", "IUEducationDegreeCredential"],
+  id: "urn:uuid:example-degree-2025",
+  issuer: "did:web:helena-unda-bounceably.ngrok-free.dev:issuers:iu",
   validFrom: "2025-06-01T00:00:00Z",
   credentialSubject: {
-    id: "did:example:holder123",
-    degree: { type: "BachelorDegree", name: "BSc in Computer Science" }
+    id: "did:example:student123",
+    degree: {
+      type: "BachelorDegree",
+      name: "Bachelor of Science in Computer Science"
+    }
   },
   credentialSchema: {
-    id: "https://uni.example.edu/schemas/UniversityDegreeCredential.json",
+    id: "https://helena-unda-bounceably.ngrok-free.dev/contexts/iu-edu-degree-v1.schema.jsonld",
     type: "JsonSchema"
   },
   credentialStatus: {
-    type: "StatusList202XEntry",
+    type: "StatusList2021Entry",
     statusPurpose: "revocation",
-    statusListCredential: "https://example.github.io/status/2025-07.json",
-    statusListIndex: "367291"
+    statusListCredential: "https://helena-unda-bounceably.ngrok-free.dev/status/2025.json",
+    statusListIndex: "42"
   },
   proof: {
     type: "DataIntegrityProof",
     cryptosuite: "merkle-receipt-2025",
     proofPurpose: "assertionMethod",
     created: "2025-06-20T09:12:03Z",
-    verificationMethod: "did:web:uni.example.edu#keys-1",
+    verificationMethod: "did:web:helena-unda-bounceably.ngrok-free.dev:issuers:iu#key-1",
     merkleReceipt: {
       chainId: "eip155:11155111",
       contractAddress: "0xREGISTRY...",
