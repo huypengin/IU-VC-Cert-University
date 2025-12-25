@@ -3,12 +3,11 @@ export interface IUSmartCertDocument {
   type: string | string[];
   id?: string;
   issuer?: string;
-  validFrom?: string; // ISO date-time
+  validFrom?: string;
   credentialSubject?: CredentialSubject;
   credentialSchema?: CredentialSchema;
   credentialStatus?: CredentialStatus;
   proof?: Proof;
-  // allow additional fields that may be present in other documents
   [key: string]: any;
 }
 
@@ -80,10 +79,11 @@ export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
     type: "JsonSchema"
   },
   credentialStatus: {
+      id: "https://helena-unda-bounceably.ngrok-free.dev/status/degree/2025#list",
     type: "StatusList2021Entry",
     statusPurpose: "revocation",
-    statusListCredential: "https://helena-unda-bounceably.ngrok-free.dev/status/2025.json",
-    statusListIndex: "42"
+    statusListCredential: "https://helena-unda-bounceably.ngrok-free.dev/status/degree/2025",
+    statusListIndex: "0"
   },
   proof: {
     type: "DataIntegrityProof",
@@ -91,7 +91,8 @@ export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
     proofPurpose: "assertionMethod",
     created: "2025-06-20T09:12:03Z",
     verificationMethod: "did:web:helena-unda-bounceably.ngrok-free.dev:issuers:iu#key-1",
-    merkleReceipt: {
+      proofValue: 'something here', //real signature value proof 1 (compusory field)
+    merkleReceipt: { // merkle receipt specific fields proof 2 (optional field)
       chainId: "eip155:11155111",
       contractAddress: "0xREGISTRY...",
       merkleRoot: "0xROOT...",
