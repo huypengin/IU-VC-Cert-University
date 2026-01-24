@@ -5,6 +5,8 @@ export type IUSmartCertUniversityCredential = {
   issuer: string | Issuer;
   validFrom: string;
   credentialSubject: CredentialSubject;
+  'iu:merkleReceipt'?: IUSmartCertMerkleReceipt;
+  'iuSmartCert:merkleReceipt'?: IUSmartCertMerkleReceipt;
   evidence?: Evidence[];
   credentialSchema?: CredentialSchema;
   credentialStatus?: CredentialStatus;
@@ -27,6 +29,7 @@ export type CredentialSubject = {
   fullName?: string;
   dateOfBirth?: string;
   degree?: Degree;
+  'iu:components'?: IUSmartCertComponent[];
   'iuSmartCert:components'?: IUSmartCertComponent[];
   [key: string]: unknown;
 };
@@ -51,6 +54,7 @@ export type Evidence = {
   id: string;
   type: string | string[];
   digestMultibase?: string;
+  'iu:purpose'?: string;
   'iuSmartCert:componentName'?: string;
   'iuSmartCert:componentHash'?: string;
   [key: string]: unknown;
@@ -90,8 +94,6 @@ export type DataIntegrityProof = {
   created: string;
   verificationMethod: string;
   proofValue?: string;
-  merkleReceipt?: MerkleReceipt;
-  'iuSmartCert:merkleReceipt'?: IUSmartCertMerkleReceipt;
   [key: string]: unknown;
 };
 
