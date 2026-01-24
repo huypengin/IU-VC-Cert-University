@@ -1,7 +1,7 @@
-import type { IUSmartCertDocument } from './schema';
+import type { IUSmartCertDocument } from "./schema";
 
 // Example runtime value using the generated interface to avoid 'unused' export warnings
-export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
+export const SAMPLE_IUSMARTCERT_DOCUMENT_2: IUSmartCertDocument = {
   "@context": [
     "https://www.w3.org/ns/credentials/v2",
     "https://helena-unda-bounceably.ngrok-free.dev/contexts/iu-edu-degree-v1.jsonld"
@@ -34,7 +34,7 @@ export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
     proofPurpose: "assertionMethod",
     created: "2025-06-20T09:12:03Z",
     verificationMethod: "did:web:helena-unda-bounceably.ngrok-free.dev:issuers:iu#key-1",
-      proofValue: 'something here', //real signature value proof 1 (compusory field)
+      proofValue: 'something here', // real signature value proof 1 (compusory field)
     merkleReceipt: { // merkle receipt specific fields proof 2 (optional field)
       chainId: "eip155:11155111",
       contractAddress: "0xREGISTRY...",

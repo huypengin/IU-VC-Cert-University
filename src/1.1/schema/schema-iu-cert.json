@@ -1,0 +1,103 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://uni.example.edu/contexts/iu-smartcert-v1.jsonld",
+    "https://uni.example.edu/contexts/merkle-receipt-v1.jsonld"
+  ],
+  "type": [
+    "VerifiableCredential",
+    "IUSmartCertUniversityCredential"
+  ],
+  "id": "urn:uuid:...",
+
+  "issuer": {
+    "id": "did:web:uni.example.edu",
+    "name": "International University - VNUHCM"
+  },
+
+  "validFrom": "2025-06-01T00:00:00Z",
+
+  "credentialSubject": {
+    "id": "did:example:holder123",
+
+    "studentId": "ITCSIU21160",
+    "fullName": "Nguyen Van A",
+    "dateOfBirth": "2002-04-17",
+
+    "degree": {
+      "type": "BachelorDegree",
+      "name": "BSc in Computer Science",
+      "program": "Computer Science",
+      "graduationDate": "2025-06-01"
+    },
+
+    "iuSmartCert:components": [
+      {
+        "name": "diploma",
+        "mandatory": true,
+        "componentType": "degreeCertificate",
+        "componentHash": "0xLEAF_HASH_DIPLOMA"
+      },
+      {
+        "name": "transcript",
+        "mandatory": false,
+        "componentType": "academicTranscript",
+        "componentHash": "0xLEAF_HASH_TRANSCRIPT"
+      }
+    ]
+  },
+
+  "evidence": [
+    {
+      "id": "https://uni.example.edu/evidence/holder123/transcript.pdf",
+      "type": ["VerifiableDocument"],
+      "digestMultibase": "uSHA256_MULTIBASE_OF_TRANSCRIPT_PDF",
+      "iuSmartCert:componentName": "transcript",
+      "iuSmartCert:componentHash": "0xLEAF_HASH_TRANSCRIPT"
+    }
+  ],
+
+  "credentialSchema": {
+    "id": "https://uni.example.edu/schemas/IUSmartCertUniversityCredential.json",
+    "type": "JsonSchema"
+  },
+
+  "credentialStatus": {
+    "type": "IUSmartCertOnChainStatusEntry",
+    "statusPurpose": "revocation",
+
+    "statusChainId": "eip155:11155111",
+    "statusContractAddress": "0xREGISTRY...",
+
+    "statusMethod": "isRevoked(bytes32)",
+    "statusEntry": "0xMANDATORY_COMPONENT_HASH"
+  },
+
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-rdfc-2022",
+    "proofPurpose": "assertionMethod",
+    "created": "2025-06-20T09:12:03Z",
+    "verificationMethod": "did:web:uni.example.edu#keys-1",
+
+    "iuSmartCert:merkleReceipt": {
+      "type": "IUSmartCertMerkleReceipt",
+      "chainId": "eip155:11155111",
+      "contractAddress": "0xREGISTRY...",
+      "merkleRoot": "0xROOT...",
+      "anchorTx": "0xTX...",
+
+      "hashAlg": "sha256",
+      "leafEncoding": "credentialID||componentType||content",
+
+      "componentsProofs": [
+        {
+          "name": "diploma",
+          "mandatory": true,
+          "hash": "0xLEAF_HASH_DIPLOMA",
+          "proof": ["0xSIBLING1...", "0xSIBLING2..."]
+        }
+      ]
+    }
+  }
+}
