@@ -1,0 +1,14 @@
+.input-file {
+    display: none;
+}
+
+.todoListMain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.todoListMain button {
+    margin: 30px;
+}

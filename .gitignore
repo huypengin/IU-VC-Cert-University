@@ -43,6 +43,7 @@ coverage
 .cache
 .parcel-cache
 .vite
+out/
 
 # OS files
 Thumbs.db

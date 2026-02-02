@@ -1,29 +1,27 @@
 {
-  "name": "iu-smart-degree",
+  "name": "iu-cert-university",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo \"(no lint configured)\""
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/hashes": "^2.0.1",
+    "ethers": "^6.15.0",
+    "multiformats": "^13.4.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.4",
-    "@typescript-eslint/eslint-plugin": "^8.46.3",
-    "@typescript-eslint/parser": "^8.46.3",
-    "eslint": "^9.39.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-prettier": "^5.5.4",
-    "jest": "^29.6.1",
-    "jest-environment-jsdom": "^29.6.1",
-    "prettier": "^3.6.2",
-    "ts-jest": "^29.1.0",
-    "typescript": "~5.9.3",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.3",
+    "typescript": "^5.9.3",
     "vite": "^7.1.7"
   }
 }

@@ -1,0 +1,15 @@
+[
+  {
+    "type": "function",
+    "name": "anchorRoot",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "merkleRoot",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": []
+  }
+]
+
