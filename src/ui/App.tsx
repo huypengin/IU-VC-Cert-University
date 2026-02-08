@@ -499,9 +499,9 @@ export default function App() {
                 )}
 
                 {/* Chain Verification */}
-                {verifyResult.chain && (
-                  <div className="result-card">
-                    <h3>Phase 2: Chain Anchoring</h3>
+                <div className="result-card">
+                  <h3>Phase 2: Chain Anchoring</h3>
+                  {verifyResult.chain ? (
                     <div className="result-items">
                       <div className={`result-item ${verifyResult.chain.valid ? "pass" : "fail"}`}>
                         <span className="indicator">{verifyResult.chain.valid ? "✓" : "✗"}</span>
@@ -513,11 +513,16 @@ export default function App() {
                         </div>
                       )}
                     </div>
-                    {verifyResult.chain.error && (
-                      <div className="result-error">{verifyResult.chain.error}</div>
-                    )}
-                  </div>
-                )}
+                  ) : (
+                    <div className="result-item info">
+                      <span className="indicator">⏩</span>
+                      Verification Skipped
+                    </div>
+                  )}
+                  {verifyResult.chain?.error && (
+                    <div className="result-error">{verifyResult.chain.error}</div>
+                  )}
+                </div>
               </div>
             </section>
           )}
