@@ -1,3 +1,4 @@
+import { getEnv } from "../env";
 import {
   HASH_ALG,
   LEAF_ENCODING,
@@ -7,6 +8,7 @@ import {
   type ComponentInput,
 } from "../core";
 import { assembleVc, signVc } from "../vc";
+import { verifyVC, type VerificationResult } from "../verifier";
 import React, { useMemo, useState } from "react";
 
 type DegreeInput = { type: string; name: string };
@@ -39,14 +41,17 @@ function downloadJson(filename: string, data: unknown) {
 }
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<"issue" | "verify">("issue");
+
+  // Issue form state
   const [form, setForm] = useState<IssueFormState>({
     credentialId: "urn:uuid:example-degree-2025",
     subjectDid: "did:example:student123",
     validFrom: isoNow(),
     degree: { type: "BachelorDegree", name: "BSc in Computer Science" },
-    chainId: "eip155:11155111",
+    chainId: getEnv("CHAIN_ID"),
     rpcUrl: "",
-    contractAddress: "",
+    contractAddress: getEnv("CONTRACT_ADDRESS"),
     components: [
       {
         name: "diploma",
@@ -66,6 +71,15 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vc, setVc] = useState<any>(null);
+
+  // Verifier state
+  const [vcInput, setVcInput] = useState("");
+  const [verifyRpcUrl, setVerifyRpcUrl] = useState("");
+  const [skipChain, setSkipChain] = useState(false);
+  const [advancedMode, setAdvancedMode] = useState(true);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [verifyResult, setVerifyResult] = useState<VerificationResult | null>(null);
 
   const canIssue = useMemo(() => {
     return (
@@ -126,211 +140,388 @@ export default function App() {
     }
   }
 
+  async function onVerify() {
+    setVerifyError(null);
+    setVerifyResult(null);
+    setVerifying(true);
+    try {
+      const parsedVc = JSON.parse(vcInput);
+      const result = await verifyVC(parsedVc, {
+        rpcUrl: verifyRpcUrl || undefined,
+        skipChainVerification: skipChain,
+        advancedVerification: advancedMode,
+      });
+      setVerifyResult(result);
+    } catch (e) {
+      setVerifyError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   return (
     <div className="container">
       <header className="header">
-        <h1>IU VC Issuer (Phase 2)</h1>
+        <h1>IU-SmartCert (Phase 2 + 3)</h1>
         <p>
-          Issues a W3C VC v2 JSON-LD with <code>iu:merkleReceipt</code> and a{" "}
-          <code>DataIntegrityProof</code> (<code>eddsa-rdfc-2022</code>).
+          Issue and verify W3C VC v2 credentials with Merkle receipts and on-chain anchoring.
         </p>
       </header>
 
-      <div className="grid">
-        <section className="card">
-          <h2>Credential</h2>
-          <label>
-            Credential ID
-            <input
-              value={form.credentialId}
-              onChange={(e) => setForm((s) => ({ ...s, credentialId: e.target.value }))}
-            />
-          </label>
-          <label>
-            Subject DID
-            <input
-              value={form.subjectDid}
-              onChange={(e) => setForm((s) => ({ ...s, subjectDid: e.target.value }))}
-            />
-          </label>
-          <label>
-            validFrom (ISO)
-            <input
-              value={form.validFrom}
-              onChange={(e) => setForm((s) => ({ ...s, validFrom: e.target.value }))}
-            />
-          </label>
+      {/* Tab Navigation */}
+      <div className="tabs">
+        <button
+          className={`tab ${activeTab === "issue" ? "active" : ""}`}
+          onClick={() => setActiveTab("issue")}
+        >
+          Issue Credential
+        </button>
+        <button
+          className={`tab ${activeTab === "verify" ? "active" : ""}`}
+          onClick={() => setActiveTab("verify")}
+        >
+          Verify Credential
+        </button>
+      </div>
 
-          <h3>Degree</h3>
-          <div className="row">
-            <label>
-              Type
-              <input
-                value={form.degree.type}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, degree: { ...s.degree, type: e.target.value } }))
-                }
-              />
-            </label>
-            <label>
-              Name
-              <input
-                value={form.degree.name}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, degree: { ...s.degree, name: e.target.value } }))
-                }
-              />
-            </label>
-          </div>
-        </section>
+      {/* Issue Tab */}
+      {activeTab === "issue" && (
+        <>
+          <div className="grid">
+            <section className="card">
+              <h2>Credential</h2>
+              <label>
+                Credential ID
+                <input
+                  value={form.credentialId}
+                  onChange={(e) => setForm((s) => ({ ...s, credentialId: e.target.value }))}
+                />
+              </label>
+              <label>
+                Subject DID
+                <input
+                  value={form.subjectDid}
+                  onChange={(e) => setForm((s) => ({ ...s, subjectDid: e.target.value }))}
+                />
+              </label>
+              <label>
+                validFrom (ISO)
+                <input
+                  value={form.validFrom}
+                  onChange={(e) => setForm((s) => ({ ...s, validFrom: e.target.value }))}
+                />
+              </label>
 
-        <section className="card">
-          <h2>Anchoring</h2>
-          <label>
-            chainId (eip155:...)
-            <input
-              value={form.chainId}
-              onChange={(e) => setForm((s) => ({ ...s, chainId: e.target.value }))}
-            />
-          </label>
-          <label>
-            rpcUrl (only needed if not using MetaMask)
-            <input
-              value={form.rpcUrl}
-              onChange={(e) => setForm((s) => ({ ...s, rpcUrl: e.target.value }))}
-              placeholder="https://..."
-            />
-          </label>
-          <label>
-            contractAddress
-            <input
-              value={form.contractAddress}
-              onChange={(e) => setForm((s) => ({ ...s, contractAddress: e.target.value }))}
-              placeholder="0x..."
-            />
-          </label>
-          <p className="hint">
-            UI anchoring expects an injected EIP-1193 provider (MetaMask) unless you wire a private
-            key based flow.
-          </p>
-        </section>
-
-        <section className="card span2">
-          <h2>Components</h2>
-          <div className="actions">
-            <button
-              type="button"
-              onClick={() =>
-                setForm((s) => ({
-                  ...s,
-                  components: [
-                    ...s.components,
-                    { name: "", mandatory: false, componentType: "", content: "" },
-                  ],
-                }))
-              }
-            >
-              Add component
-            </button>
-          </div>
-
-          <div className="components">
-            {form.components.map((c, i) => (
-              <div key={i} className="component">
-                <div className="row">
-                  <label>
-                    Name
-                    <input
-                      value={c.name}
-                      onChange={(e) =>
-                        setForm((s) => ({
-                          ...s,
-                          components: s.components.map((x, idx) =>
-                            idx === i ? { ...x, name: e.target.value } : x,
-                          ),
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    componentType
-                    <input
-                      value={c.componentType}
-                      onChange={(e) =>
-                        setForm((s) => ({
-                          ...s,
-                          components: s.components.map((x, idx) =>
-                            idx === i ? { ...x, componentType: e.target.value } : x,
-                          ),
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="checkbox">
-                    <input
-                      type="checkbox"
-                      checked={c.mandatory}
-                      onChange={(e) =>
-                        setForm((s) => ({
-                          ...s,
-                          components: s.components.map((x, idx) =>
-                            idx === i ? { ...x, mandatory: e.target.checked } : x,
-                          ),
-                        }))
-                      }
-                    />
-                    mandatory
-                  </label>
-                  <button
-                    type="button"
-                    className="danger"
-                    onClick={() =>
-                      setForm((s) => ({ ...s, components: s.components.filter((_, idx) => idx !== i) }))
-                    }
-                  >
-                    Remove
-                  </button>
-                </div>
+              <h3>Degree</h3>
+              <div className="row">
                 <label>
-                  content (demo)
-                  <textarea
-                    value={c.content}
+                  Type
+                  <input
+                    value={form.degree.type}
                     onChange={(e) =>
-                      setForm((s) => ({
-                        ...s,
-                        components: s.components.map((x, idx) =>
-                          idx === i ? { ...x, content: e.target.value } : x,
-                        ),
-                      }))
+                      setForm((s) => ({ ...s, degree: { ...s.degree, type: e.target.value } }))
                     }
-                    rows={2}
+                  />
+                </label>
+                <label>
+                  Name
+                  <input
+                    value={form.degree.name}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, degree: { ...s.degree, name: e.target.value } }))
+                    }
                   />
                 </label>
               </div>
-            ))}
+            </section>
+
+            <section className="card">
+              <h2>Anchoring</h2>
+              <label>
+                chainId (eip155:...)
+                <input
+                  value={form.chainId}
+                  onChange={(e) => setForm((s) => ({ ...s, chainId: e.target.value }))}
+                />
+              </label>
+              <label>
+                rpcUrl (only needed if not using MetaMask)
+                <input
+                  value={form.rpcUrl}
+                  onChange={(e) => setForm((s) => ({ ...s, rpcUrl: e.target.value }))}
+                  placeholder="https://..."
+                />
+              </label>
+              <label>
+                contractAddress
+                <input
+                  value={form.contractAddress}
+                  onChange={(e) => setForm((s) => ({ ...s, contractAddress: e.target.value }))}
+                  placeholder="0x..."
+                />
+              </label>
+              <p className="hint">
+                UI anchoring expects an injected EIP-1193 provider (MetaMask) unless you wire a private
+                key based flow.
+              </p>
+            </section>
+
+            <section className="card span2">
+              <h2>Components</h2>
+              <div className="actions">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((s) => ({
+                      ...s,
+                      components: [
+                        ...s.components,
+                        { name: "", mandatory: false, componentType: "", content: "" },
+                      ],
+                    }))
+                  }
+                >
+                  Add component
+                </button>
+              </div>
+
+              <div className="components">
+                {form.components.map((c, i) => (
+                  <div key={i} className="component">
+                    <div className="row">
+                      <label>
+                        Name
+                        <input
+                          value={c.name}
+                          onChange={(e) =>
+                            setForm((s) => ({
+                              ...s,
+                              components: s.components.map((x, idx) =>
+                                idx === i ? { ...x, name: e.target.value } : x,
+                              ),
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        componentType
+                        <input
+                          value={c.componentType}
+                          onChange={(e) =>
+                            setForm((s) => ({
+                              ...s,
+                              components: s.components.map((x, idx) =>
+                                idx === i ? { ...x, componentType: e.target.value } : x,
+                              ),
+                            }))
+                          }
+                        />
+                      </label>
+                      <label className="checkbox">
+                        <input
+                          type="checkbox"
+                          checked={c.mandatory}
+                          onChange={(e) =>
+                            setForm((s) => ({
+                              ...s,
+                              components: s.components.map((x, idx) =>
+                                idx === i ? { ...x, mandatory: e.target.checked } : x,
+                              ),
+                            }))
+                          }
+                        />
+                        mandatory
+                      </label>
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() =>
+                          setForm((s) => ({ ...s, components: s.components.filter((_, idx) => idx !== i) }))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <label>
+                      content (demo)
+                      <textarea
+                        value={c.content}
+                        onChange={(e) =>
+                          setForm((s) => ({
+                            ...s,
+                            components: s.components.map((x, idx) =>
+                              idx === i ? { ...x, content: e.target.value } : x,
+                            ),
+                          }))
+                        }
+                        rows={2}
+                      />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
-        </section>
-      </div>
 
-      <section className="card">
-        <div className="actions">
-          <button type="button" onClick={onIssue} disabled={!canIssue || busy}>
-            {busy ? "Issuing..." : "Issue VC"}
-          </button>
+          <section className="card">
+            <div className="actions">
+              <button type="button" onClick={onIssue} disabled={!canIssue || busy}>
+                {busy ? "Issuing..." : "Issue VC"}
+              </button>
+              {vc && (
+                <button type="button" onClick={() => downloadJson("vc.json", vc)}>
+                  Download vc.json
+                </button>
+              )}
+            </div>
+            {error && <pre className="error">{error}</pre>}
+          </section>
+
           {vc && (
-            <button type="button" onClick={() => downloadJson("vc.json", vc)}>
-              Download vc.json
-            </button>
+            <section className="card">
+              <h2>Output</h2>
+              <pre className="code">{JSON.stringify(vc, null, 2)}</pre>
+            </section>
           )}
-        </div>
-        {error && <pre className="error">{error}</pre>}
-      </section>
+        </>
+      )}
 
-      {vc && (
-        <section className="card">
-          <h2>Output</h2>
-          <pre className="code">{JSON.stringify(vc, null, 2)}</pre>
-        </section>
+      {/* Verify Tab */}
+      {activeTab === "verify" && (
+        <>
+          <div className="grid">
+            <section className="card span2">
+              <h2>Paste VC JSON</h2>
+              <textarea
+                className="vc-input"
+                value={vcInput}
+                onChange={(e) => setVcInput(e.target.value)}
+                placeholder='{"@context": [...], "type": [...], ...}'
+                rows={12}
+              />
+            </section>
+
+            <section className="card">
+              <h2>Verification Options</h2>
+              <label>
+                RPC URL (optional, for chain verification)
+                <input
+                  value={verifyRpcUrl}
+                  onChange={(e) => setVerifyRpcUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={advancedMode}
+                  onChange={(e) => setAdvancedMode(e.target.checked)}
+                />
+                Advanced verification (Merkle + Chain)
+              </label>
+              <label className="checkbox">
+                <input
+                  type="checkbox"
+                  checked={skipChain}
+                  onChange={(e) => setSkipChain(e.target.checked)}
+                />
+                Skip chain verification
+              </label>
+            </section>
+
+            <section className="card">
+              <div className="actions">
+                <button
+                  type="button"
+                  onClick={onVerify}
+                  disabled={!vcInput.trim() || verifying}
+                  className="verify-btn"
+                >
+                  {verifying ? "Verifying..." : "Verify VC"}
+                </button>
+              </div>
+              {verifyError && <pre className="error">{verifyError}</pre>}
+            </section>
+          </div>
+
+          {/* Verification Results */}
+          {verifyResult && (
+            <section className="card">
+              <h2>Verification Results</h2>
+              <div className={`result-banner ${verifyResult.valid ? "success" : "failure"}`}>
+                {verifyResult.valid ? "✓ Verification Passed" : "✗ Verification Failed"}
+                <span className="result-phase">Phase: {verifyResult.phase}</span>
+              </div>
+
+              <div className="result-grid">
+                {/* Standard Verification */}
+                <div className="result-card">
+                  <h3>Phase 1: Standard VC</h3>
+                  <div className="result-items">
+                    <div className={`result-item ${verifyResult.standard.signatureValid ? "pass" : "fail"}`}>
+                      <span className="indicator">{verifyResult.standard.signatureValid ? "✓" : "✗"}</span>
+                      Signature Valid
+                    </div>
+                    <div className={`result-item ${verifyResult.standard.issuerValid ? "pass" : "fail"}`}>
+                      <span className="indicator">{verifyResult.standard.issuerValid ? "✓" : "✗"}</span>
+                      Issuer Valid
+                    </div>
+                    <div className={`result-item ${verifyResult.standard.temporalValid ? "pass" : "fail"}`}>
+                      <span className="indicator">{verifyResult.standard.temporalValid ? "✓" : "✗"}</span>
+                      Temporal Valid
+                    </div>
+                  </div>
+                  {verifyResult.standard.error && (
+                    <div className="result-error">{verifyResult.standard.error}</div>
+                  )}
+                </div>
+
+                {/* Merkle Verification */}
+                {verifyResult.merkle && (
+                  <div className="result-card">
+                    <h3>Phase 2: Merkle Proofs</h3>
+                    <div className="result-items">
+                      <div className={`result-item ${verifyResult.merkle.valid ? "pass" : "fail"}`}>
+                        <span className="indicator">{verifyResult.merkle.valid ? "✓" : "✗"}</span>
+                        Proofs Valid
+                      </div>
+                      <div className="result-item info">
+                        Components: {verifyResult.merkle.componentsVerified} / {verifyResult.merkle.totalComponents}
+                      </div>
+                    </div>
+                    {verifyResult.receiptSource && (
+                      <div className="result-info">Receipt source: {verifyResult.receiptSource}</div>
+                    )}
+                    {verifyResult.merkle.error && (
+                      <div className="result-error">{verifyResult.merkle.error}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Chain Verification */}
+                {verifyResult.chain && (
+                  <div className="result-card">
+                    <h3>Phase 2: Chain Anchoring</h3>
+                    <div className="result-items">
+                      <div className={`result-item ${verifyResult.chain.valid ? "pass" : "fail"}`}>
+                        <span className="indicator">{verifyResult.chain.valid ? "✓" : "✗"}</span>
+                        Anchor Confirmed
+                      </div>
+                      {verifyResult.chain.chainId && (
+                        <div className="result-item info">
+                          Chain: {verifyResult.chain.chainId}
+                        </div>
+                      )}
+                    </div>
+                    {verifyResult.chain.error && (
+                      <div className="result-error">{verifyResult.chain.error}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );

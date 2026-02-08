@@ -10,6 +10,59 @@
       }
     ],
     "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "verify",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "proof",
+        "type": "bytes32[]"
+      },
+      {
+        "name": "leaf",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "MTRoot",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "isValid",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "credentialMandatoryComponent",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      },
+      {
+        "name": "",
+        "type": "string"
+      }
+    ]
   }
 ]
-

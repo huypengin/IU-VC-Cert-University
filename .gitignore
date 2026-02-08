@@ -106,3 +106,4 @@ temp/
 # pnpm-lock.yaml
 
 .github/*
+vc.json

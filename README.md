@@ -73,6 +73,7 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 - `CHAIN_ID` (format: `eip155:<number>`, e.g. `eip155:11155111`)
 - `RPC_URL` (reserved for a future non-MetaMask flow; not used by the current UI implementation)
 - `CONTRACT_ADDRESS` (a deployed contract that supports `anchorRoot(bytes32)`)
+  - **Phase 2 Frozen Contract**: `0x0582770bea93B40807D422F22eF8FC4288c81Cb4` (Sepolia)
 - ABI used by the UI: `src/contracts/abi/Root.json`
 
 ## Issue a VC (UI)
