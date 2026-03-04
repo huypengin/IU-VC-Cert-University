@@ -10,7 +10,7 @@ Single-package **Vite + React** issuer UI that implements **ONLY Phrase/Phase 2*
 Out of scope (intentionally omitted):
 - Wallet implementation
 - Multiple VC formats
-- OID4VCI/OID4VP
+- OID4VP
 - StatusList2021 / public bitstring status endpoints
 - Verifier UI
 - Selective disclosure inside wallets
@@ -51,6 +51,24 @@ Build:
 npm run build
 npm run preview
 ```
+
+## Wallet Pickup Demo (OID4VCI)
+
+Run these commands in separate terminals:
+
+```bash
+npm install
+npm run oid4vci
+npm run dev
+```
+
+User flow:
+1. Open the app and switch to the `Wallet Pickup` tab.
+2. Click `Add to Wallet`.
+3. Scan the QR code from a wallet app or tap the deep link.
+4. If the code expires, click `Generate new QR` and retry.
+
+Full runbook: `docs/oid4vci-wallet-demo.md`
 
 ## Environment variables
 
