@@ -404,7 +404,7 @@ export default function App() {
             <section className="card">
               <h2>Verification Options</h2>
               <label>
-                RPC URL (optional, for chain verification)
+                RPC URL (optional, uses MetaMask if empty)
                 <input
                   value={verifyRpcUrl}
                   onChange={(e) => setVerifyRpcUrl(e.target.value)}

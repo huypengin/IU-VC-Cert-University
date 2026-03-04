@@ -107,3 +107,7 @@ temp/
 
 .github/*
 vc.json
+.agents
+.antigravity
+.cursor
+.claude

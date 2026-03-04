@@ -1,0 +1,25 @@
+/**
+ * OID4VCI Routes – Express router wiring.
+ */
+
+import { Router } from "express";
+import {
+  getIssuerMetadata,
+  getJwks,
+  getCredentialOffer,
+  postToken,
+  postCredential,
+} from "./oid4vci.controller.js";
+
+const router = Router();
+
+// Well-known endpoints
+router.get("/.well-known/openid-credential-issuer", getIssuerMetadata);
+router.get("/.well-known/jwks.json", getJwks);
+
+// OID4VCI flow endpoints
+router.get("/oid4vci/credential-offer", getCredentialOffer);
+router.post("/oid4vci/token", postToken);
+router.post("/oid4vci/credential", postCredential);
+
+export default router;

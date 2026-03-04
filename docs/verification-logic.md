@@ -26,11 +26,13 @@ Verification is divided into three distinct layers. For a credential to be fully
 *   **Status**: Mandatory in Advanced Mode.
 
 ### 3. Chain Anchoring Layer (Phase 2b)
-*   **What it checks**: Whether the `merkleRoot` from Layer 2 was recorded on the Sepolia Ethereum blockchain.
+*   **What it checks**: Whether the `merkleRoot` from Phase 2a was officially anchored on the Sepolia Ethereum blockchain by the issuer.
 *   **Technical Details**:
-    *   **Smart Contract**: The verifier calls the `verifyRoot` function on the deployed `Root` contract.
-    *   **Blockchain**: The default anchor is **Sepolia (Chain ID 11155111)**.
-    *   **Anchor Check**: It verifies that the transaction hash provided in `anchorTx` actually contains the `merkleRoot` as its payload and was emitted by the correct smart contract.
+    *   **Double-Verification Strategy**:
+        1.  **Event Analysis**: The verifier fetches the transaction receipt for `anchorTx`. It parses the blockchain logs to find a `RootAnchored` event. This event must contain the exact `merkleRoot` and must have been emitted by the correct `contractAddress`.
+        2.  **Contract State Call**: For each component, the verifier calls the `verify(proof, leaf)` function on the smart contract.
+    *   **Leaf Construction (On-Chain)**: To match the contract's expectations, the verifier computes the leaf as `keccak256(utf8(componentHash))`. Note that `componentHash` is the SHA-256 hash stored in the VC.
+    *   **Blockchain**: Default is **Sepolia (Chain ID 11155111)** via MetaMask or public RPC.
 *   **Status**: **Optional** (can be skipped via the "Skip chain verification" toggle).
 
 ---
@@ -70,5 +72,29 @@ The system returns `valid: true` because:
 ### Summary
 *   **Skip = Integrity Only**: Proves the data matches what the issuer signed in the receipt.
 *   **No Skip = Full Trust**: Proves the data matches the issuer's signature **AND** the immutable record on the blockchain.
+## Phase 2b: On-Chain Verification Process Flow
+
+When the verifier executes Phase 2b, it follows these exact steps:
+
+1.  **Provider Initialization**:
+    *   If a custom **RPC URL** is provided, it connects there.
+    *   If empty, it attempts to use the **MetaMask** (Injected Provider) and requests account access.
+    *   It verifies the connected **Chain ID** matches the credential (e.g., Sepolia `11155111`).
+
+2.  **Transaction Receipt Retrieval**:
+    *   The verifier queries the blockchain for the `anchorTx` hash provided in the VC evidence.
+    *   It confirms the transaction status is `1` (Success) and the `to` address matches the `contractAddress`.
+
+3.  **Event Log Parsing**:
+    *   It iterates through the transaction's event logs using the `AnchorRegistry` ABI.
+    *   It looks for a `RootAnchored(bytes32 indexed merkleRoot, ...)` event where the `merkleRoot` exactly matches the one in the VC.
+
+4.  **On-Chain Merkle Check (`verify`)**:
+    *   For each component (e.g., "diploma"), it reconstructs the leaf: `leaf = keccak256(utf8(componentHash))`.
+    *   It calls the smart contract's `verify(proof, leaf)` view function.
+    *   The contract computes the root using the provided Merkle proof and returns `true` only if it matches the `MTRoot` stored in the contract's state.
+
+5.  **Final Verdict**:
+    *   If all steps (Provider -> Receipt -> Event -> Verify Call) succeed, the layer returns **Valid**.
 
 In development, skipping the chain check allows for faster testing of the complex Merkle logic without needing constant blockchain connectivity.
