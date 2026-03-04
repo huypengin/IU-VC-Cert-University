@@ -9,7 +9,8 @@ import {
 } from "../core";
 import { assembleVc, signVc } from "../vc";
 import { verifyVC, type VerificationResult } from "../verifier";
-import React, { useMemo, useState } from "react";
+import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
+import React, { useEffect, useMemo, useState } from "react";
 
 type DegreeInput = { type: string; name: string };
 
@@ -41,7 +42,7 @@ function downloadJson(filename: string, data: unknown) {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"issue" | "verify">("issue");
+  const [activeTab, setActiveTab] = useState<"issue" | "verify" | "pickup">("issue");
 
   // Issue form state
   const [form, setForm] = useState<IssueFormState>({
@@ -80,6 +81,14 @@ export default function App() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerificationResult | null>(null);
+
+  // Wallet pickup state
+  const [pickupSubjectId, setPickupSubjectId] = useState("did:example:student123");
+  const [pickupBusy, setPickupBusy] = useState(false);
+  const [pickupError, setPickupError] = useState<string | null>(null);
+  const [pickupOffer, setPickupOffer] = useState<PickupOfferVm | null>(null);
+  const [pickupExpiresAtMs, setPickupExpiresAtMs] = useState<number | null>(null);
+  const [pickupNowMs, setPickupNowMs] = useState(Date.now());
 
   const canIssue = useMemo(() => {
     return (
@@ -159,6 +168,37 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    if (!pickupExpiresAtMs) return;
+    const timer = window.setInterval(() => setPickupNowMs(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [pickupExpiresAtMs]);
+
+  const pickupSecondsLeft = useMemo(() => {
+    if (!pickupExpiresAtMs) return 0;
+    return Math.max(0, Math.ceil((pickupExpiresAtMs - pickupNowMs) / 1000));
+  }, [pickupExpiresAtMs, pickupNowMs]);
+
+  const pickupQrSrc = useMemo(() => {
+    if (!pickupOffer) return "";
+    return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(pickupOffer.offerUri)}`;
+  }, [pickupOffer]);
+
+  async function onCreatePickupOffer() {
+    setPickupError(null);
+    setPickupBusy(true);
+    try {
+      const nextOffer = await fetchPickupOffer(pickupSubjectId.trim() || undefined);
+      setPickupOffer(nextOffer);
+      setPickupNowMs(Date.now());
+      setPickupExpiresAtMs(Date.now() + nextOffer.expiresInSec * 1000);
+    } catch (e) {
+      setPickupError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPickupBusy(false);
+    }
+  }
+
   return (
     <div className="container">
       <header className="header">
@@ -181,6 +221,12 @@ export default function App() {
           onClick={() => setActiveTab("verify")}
         >
           Verify Credential
+        </button>
+        <button
+          className={`tab ${activeTab === "pickup" ? "active" : ""}`}
+          onClick={() => setActiveTab("pickup")}
+        >
+          Wallet Pickup
         </button>
       </div>
 
@@ -526,6 +572,57 @@ export default function App() {
               </div>
             </section>
           )}
+        </>
+      )}
+
+      {/* Wallet Pickup Tab */}
+      {activeTab === "pickup" && (
+        <>
+          <div className="grid">
+            <section className="card">
+              <h2>Wallet Pickup</h2>
+              <label>
+                Subject DID (optional override)
+                <input
+                  value={pickupSubjectId}
+                  onChange={(e) => setPickupSubjectId(e.target.value)}
+                  placeholder="did:example:student123"
+                />
+              </label>
+              <div className="pickup-actions">
+                <button type="button" onClick={onCreatePickupOffer} disabled={pickupBusy}>
+                  {pickupBusy ? "Generating..." : "Add to Wallet"}
+                </button>
+                {pickupOffer && (
+                  <button type="button" onClick={onCreatePickupOffer} disabled={pickupBusy}>
+                    Generate new QR
+                  </button>
+                )}
+              </div>
+              {pickupError && <pre className="error">{pickupError}</pre>}
+              <p className="hint">
+                Generate an OID4VCI offer and either open the wallet deep link or scan QR from a phone wallet.
+              </p>
+            </section>
+
+            {pickupOffer && (
+              <section className="card pickup-panel">
+                <h2>Offer Ready</h2>
+                <div className="pickup-actions">
+                  <a href={pickupOffer.offerUri} className="pickup-link-btn">
+                    Open Wallet Deep Link
+                  </a>
+                </div>
+                <div className="pickup-qr">
+                  <img src={pickupQrSrc} alt="OID4VCI offer QR code" width={240} height={240} />
+                </div>
+                <p>Expires in: {pickupSecondsLeft}s</p>
+                {pickupSecondsLeft === 0 && (
+                  <p className="hint">This offer has expired. Generate a new QR to continue.</p>
+                )}
+              </section>
+            )}
+          </div>
         </>
       )}
     </div>
