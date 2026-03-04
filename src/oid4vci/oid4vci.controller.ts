@@ -5,6 +5,7 @@
 import type { Request, Response } from "express";
 import {
   createPreAuthCode,
+  createPickupOfferResponse,
   exchangeCodeForToken,
   validateAccessToken,
   buildJwtVc,
@@ -68,6 +69,11 @@ export function getCredentialOffer(_req: Request, res: Response): void {
       },
     },
   });
+}
+
+export function getPickupOffer(req: Request, res: Response): void {
+  const subjectId = ((req.query.subject_id as string) ?? "did:example:student123");
+  res.json(createPickupOfferResponse(subjectId));
 }
 
 // ─── POST /oid4vci/token ────────────────────────────────────────────────────

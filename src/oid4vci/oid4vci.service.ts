@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as jose from "jose";
 import { getPrivateKey, getKid } from "./keys.js";
+import { buildCredentialOfferUri } from "./offerUri.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,27 @@ export function createPreAuthCode(
     credentialConfigId,
   });
   return code;
+}
+
+export function createPickupOfferResponse(subjectId: string) {
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
+  const code = createPreAuthCode(subjectId);
+  const offer = {
+    credential_issuer: baseUrl,
+    credential_configuration_ids: ["IU_Degree_JWTVC"],
+    grants: {
+      "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
+        "pre-authorized_code": code,
+        user_pin_required: false,
+      },
+    },
+  };
+
+  return {
+    offer,
+    offerUri: buildCredentialOfferUri(offer),
+    expiresInSec: PRE_AUTH_TTL_SEC,
+  };
 }
 
 // ─── Token exchange ─────────────────────────────────────────────────────────
