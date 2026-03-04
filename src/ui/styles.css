@@ -318,3 +318,57 @@ button.danger {
   font-size: 11px;
   color: rgba(238, 242, 255, 0.6);
 }
+
+.pickup-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pickup-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.pickup-link-btn {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.12);
+  color: #eef2ff;
+  padding: 10px 12px;
+  text-decoration: none;
+}
+
+.pickup-link-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.pickup-qr {
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  width: fit-content;
+  padding: 8px;
+}
+
+.pickup-qr img {
+  display: block;
+}
+
+.expiry-active {
+  color: #7fffb0;
+  margin: 0;
+}
+
+.expiry-expiring {
+  color: #ffd36e;
+  margin: 0;
+}
+
+.expiry-expired {
+  color: #ff9090;
+  margin: 0;
+}

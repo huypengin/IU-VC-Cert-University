@@ -10,6 +10,7 @@ import {
 import { assembleVc, signVc } from "../vc";
 import { verifyVC, type VerificationResult } from "../verifier";
 import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
+import { describeExpiryState } from "./pickupState";
 import React, { useEffect, useMemo, useState } from "react";
 
 type DegreeInput = { type: string; name: string };
@@ -183,6 +184,11 @@ export default function App() {
     if (!pickupOffer) return "";
     return `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(pickupOffer.offerUri)}`;
   }, [pickupOffer]);
+
+  const pickupExpiryState = useMemo(
+    () => describeExpiryState(pickupSecondsLeft),
+    [pickupSecondsLeft],
+  );
 
   async function onCreatePickupOffer() {
     setPickupError(null);
@@ -616,7 +622,7 @@ export default function App() {
                 <div className="pickup-qr">
                   <img src={pickupQrSrc} alt="OID4VCI offer QR code" width={240} height={240} />
                 </div>
-                <p>Expires in: {pickupSecondsLeft}s</p>
+                <p className={`expiry-${pickupExpiryState}`}>Expires in: {pickupSecondsLeft}s</p>
                 {pickupSecondsLeft === 0 && (
                   <p className="hint">This offer has expired. Generate a new QR to continue.</p>
                 )}
