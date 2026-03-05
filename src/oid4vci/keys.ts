@@ -7,7 +7,9 @@
 
 import * as jose from "jose";
 
-let privateKey: jose.KeyLike | Uint8Array;
+type SigningKey = Parameters<jose.SignJWT["sign"]>[0];
+
+let privateKey: SigningKey;
 let publicJWK: jose.JWK;
 let kid: string;
 
@@ -56,7 +58,7 @@ export async function initKeys(): Promise<void> {
 }
 
 /** Get the private key for JWT signing. */
-export function getPrivateKey(): jose.KeyLike | Uint8Array {
+export function getPrivateKey(): SigningKey {
   if (!privateKey) throw new Error("Keys not initialised – call initKeys()");
   return privateKey;
 }
