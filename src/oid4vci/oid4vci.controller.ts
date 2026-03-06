@@ -4,9 +4,10 @@
 
 import type { Request, Response } from "express";
 import {
-  createPreAuthCode,
+  createCredentialOffer,
   createPickupOfferResponse,
   exchangeCodeForToken,
+  generateNonceResponse,
   validateAccessToken,
   buildJwtVc,
   OID4VCIError,
@@ -16,18 +17,35 @@ import { getPublicJWKS } from "./keys.js";
 // ─── GET /.well-known/openid-credential-issuer ──────────────────────────────
 
 export function getIssuerMetadata(_req: Request, res: Response): void {
-  const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
+  const port = Number(process.env.OID4VCI_PORT) || 8787;
+  const baseUrl = process.env.BASE_URL ?? `http://localhost:${port}`;
+
+  const vcTypes = [
+    "VerifiableCredential",
+    "VNEduDegreeCredential",
+    "IUSmartCertCredential",
+  ];
 
   res.json({
     credential_issuer: baseUrl,
     credential_endpoint: `${baseUrl}/oid4vci/credential`,
     token_endpoint: `${baseUrl}/oid4vci/token`,
+    nonce_endpoint: `${baseUrl}/oid4vci/nonce`,
     jwks_uri: `${baseUrl}/.well-known/jwks.json`,
+
+    // OID4VCI 1.0 – required by Sphereon and most modern wallets
     credential_configurations_supported: {
       IU_Degree_JWTVC: {
-        format: "jwt_vc",
+        format: "jwt_vc_json",
         scope: "IU_Degree_JWTVC",
-        cryptographic_binding_methods_supported: ["did:example"],
+
+        // ← THIS was the missing piece causing "cannot deduce types"
+        credential_definition: {
+          type: vcTypes,
+        },
+        types: vcTypes,
+
+        cryptographic_binding_methods_supported: ["did:jwk", "did:key", "did:example"],
         credential_signing_alg_values_supported: ["ES256"],
         display: [
           {
@@ -39,6 +57,17 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
         ],
       },
     },
+
+    // Legacy field – some older wallets/drafts look here instead
+    credentials_supported: [
+      {
+        format: "jwt_vc_json",
+        types: vcTypes,
+        credential_definition: {
+          type: vcTypes,
+        },
+      },
+    ],
   });
 }
 
@@ -51,29 +80,27 @@ export function getJwks(_req: Request, res: Response): void {
 // ─── GET /oid4vci/credential-offer ──────────────────────────────────────────
 
 export function getCredentialOffer(_req: Request, res: Response): void {
-  const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
-
   // Accept optional subjectId via query param for flexibility
   const subjectId =
     ((_req.query.subject_id as string) ?? "did:example:student123");
-
-  const code = createPreAuthCode(subjectId);
-
-  res.json({
-    credential_issuer: baseUrl,
-    credential_configuration_ids: ["IU_Degree_JWTVC"],
-    grants: {
-      "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
-        "pre-authorized_code": code,
-        user_pin_required: false,
-      },
-    },
-  });
+  const preAuthorizedCode =
+    (_req.query.pre_authorized_code as string | undefined);
+  res.json(createCredentialOffer(subjectId, preAuthorizedCode));
 }
 
 export function getPickupOffer(req: Request, res: Response): void {
   const subjectId = ((req.query.subject_id as string) ?? "did:example:student123");
   res.json(createPickupOfferResponse(subjectId));
+}
+
+// ─── POST /oid4vci/nonce ────────────────────────────────────────────────────
+
+export function getNonce(_req: Request, res: Response): void {
+  res.json(generateNonceResponse());
+}
+
+export function postNonce(_req: Request, res: Response): void {
+  res.json(generateNonceResponse());
 }
 
 // ─── POST /oid4vci/token ────────────────────────────────────────────────────
@@ -147,7 +174,7 @@ export async function postCredential(
     const jwtVc = await buildJwtVc(tokenMeta);
 
     res.json({
-      format: "jwt_vc",
+      format: "jwt_vc_json",
       credential: jwtVc,
     });
   } catch (err) {

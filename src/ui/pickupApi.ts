@@ -3,6 +3,21 @@ export interface PickupOfferVm {
   expiresInSec: number;
 }
 
+const DEFAULT_OID4VCI_BASE_URL = "http://localhost:8787";
+
+function getOid4vciBaseUrl(): string {
+  if (typeof __IU_ENV__ === "undefined" || __IU_ENV__.DEV === "true") return DEFAULT_OID4VCI_BASE_URL;
+  return __IU_ENV__.OID4VCI_BASE_URL || __IU_ENV__.BASE_URL || DEFAULT_OID4VCI_BASE_URL;
+}
+
+export function buildPickupOfferUrl(subjectId?: string): string {
+  const url = new URL("/oid4vci/pickup-offer", getOid4vciBaseUrl());
+  if (subjectId) {
+    url.searchParams.set("subject_id", subjectId);
+  }
+  return url.toString();
+}
+
 export function mapPickupOfferResponse(raw: {
   offerUri: string;
   expiresInSec: number;
@@ -19,8 +34,11 @@ export function mapPickupOfferResponse(raw: {
 }
 
 export async function fetchPickupOffer(subjectId?: string): Promise<PickupOfferVm> {
-  const qp = subjectId ? `?subject_id=${encodeURIComponent(subjectId)}` : "";
-  const res = await fetch(`/oid4vci/pickup-offer${qp}`);
+  const res = await fetch(buildPickupOfferUrl(subjectId), {
+    headers: {
+      "ngrok-skip-browser-warning": "true",
+    },
+  });
   if (!res.ok) throw new Error(`Failed to create offer (${res.status})`);
   return mapPickupOfferResponse(await res.json());
 }

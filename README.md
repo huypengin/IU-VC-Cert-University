@@ -62,6 +62,21 @@ npm run oid4vci
 npm run dev
 ```
 
+Public tunnel mode (recommended for mobile wallets and cross-device testing):
+
+```bash
+npm install
+npm run oid4vci:tunnel
+npm run dev
+```
+
+UI-to-issuer URL resolution for wallet pickup:
+- `OID4VCI_BASE_URL` (if set)
+- else `BASE_URL` (if set)
+- else `http://localhost:8787`
+
+When using `oid4vci:tunnel`, `BASE_URL` is derived from `NGROK_DOMAIN` automatically.
+
 User flow:
 1. Open the app and switch to the `Wallet Pickup` tab.
 2. Click `Add to Wallet`.
@@ -93,6 +108,12 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 - `CONTRACT_ADDRESS` (a deployed contract that supports `anchorRoot(bytes32)`)
   - **Phase 2 Frozen Contract**: `0x0582770bea93B40807D422F22eF8FC4288c81Cb4` (Sepolia)
 - ABI used by the UI: `src/contracts/abi/Root.json`
+
+### OID4VCI Tunnel (optional)
+
+- `NGROK_DOMAIN` (required for `npm run oid4vci:tunnel`)
+  - example: `my-issuer.ngrok-free.app` (host only) or `https://my-issuer.ngrok-free.app`
+- `NGROK_AUTHTOKEN` (optional if not already configured with `ngrok config add-authtoken`)
 
 ## Issue a VC (UI)
 

@@ -7,7 +7,10 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as jose from "jose";
 import { getPrivateKey, getKid } from "./keys.js";
-import { buildCredentialOfferUri } from "./offerUri.js";
+import {
+  buildCredentialOfferUriByReference,
+  type CredentialOfferPayload,
+} from "./offerUri.js";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -30,9 +33,11 @@ interface TokenEntry {
 
 const preAuthCodes = new Map<string, PreAuthEntry>();
 const accessTokens = new Map<string, TokenEntry>();
+const nonces = new Map<string, { createdAt: number; expiresAt: number }>();
 
 const PRE_AUTH_TTL_SEC = 300; // 5 min
 const TOKEN_TTL_SEC = 300; // 5 min
+const NONCE_TTL_SEC = 300; // 5 min
 
 // ─── Pre-authorized code ────────────────────────────────────────────────────
 
@@ -52,10 +57,14 @@ export function createPreAuthCode(
   return code;
 }
 
-export function createPickupOfferResponse(subjectId: string) {
+export function createCredentialOffer(
+  subjectId: string,
+  preAuthorizedCode?: string,
+): CredentialOfferPayload {
   const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
-  const code = createPreAuthCode(subjectId);
-  const offer = {
+  const code = preAuthorizedCode ?? createPreAuthCode(subjectId);
+
+  return {
     credential_issuer: baseUrl,
     credential_configuration_ids: ["IU_Degree_JWTVC"],
     grants: {
@@ -65,20 +74,60 @@ export function createPickupOfferResponse(subjectId: string) {
       },
     },
   };
+}
+
+export function createPickupOfferResponse(subjectId: string) {
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
+  const code = createPreAuthCode(subjectId);
+  const offer = createCredentialOffer(subjectId, code);
+  const offerUrl = new URL("/oid4vci/credential-offer", baseUrl);
+  offerUrl.searchParams.set("subject_id", subjectId);
+  offerUrl.searchParams.set("pre_authorized_code", code);
 
   return {
     offer,
-    offerUri: buildCredentialOfferUri(offer),
+    offerUri: buildCredentialOfferUriByReference(offerUrl.toString()),
     expiresInSec: PRE_AUTH_TTL_SEC,
   };
 }
 
 // ─── Token exchange ─────────────────────────────────────────────────────────
 
+// ─── Nonce management ───────────────────────────────────────────────────────
+
+export function createNonce(): string {
+  const nonce = randomUUID();
+  const now = Date.now();
+  nonces.set(nonce, {
+    createdAt: now,
+    expiresAt: now + NONCE_TTL_SEC * 1000,
+  });
+  return nonce;
+}
+
+export function generateNonceResponse(): {
+  c_nonce: string;
+  c_nonce_expires_in: number;
+} {
+  return {
+    c_nonce: createNonce(),
+    c_nonce_expires_in: NONCE_TTL_SEC,
+  };
+}
+
+export function createCredentialNonce(): {
+  c_nonce: string;
+  c_nonce_expires_in: number;
+} {
+  return generateNonceResponse();
+}
+
 export function exchangeCodeForToken(code: string): {
   access_token: string;
   token_type: "Bearer";
   expires_in: number;
+  c_nonce: string;
+  c_nonce_expires_in: number;
 } {
   const entry = preAuthCodes.get(code);
   if (!entry) throw new OID4VCIError("invalid_grant", "Unknown pre-authorized code");
@@ -99,10 +148,15 @@ export function exchangeCodeForToken(code: string): {
     subjectId: entry.subjectId,
   });
 
+  // Generate c_nonce for proof-of-possession
+  const nonce = createNonce();
+
   return {
     access_token: token,
     token_type: "Bearer",
     expires_in: TOKEN_TTL_SEC,
+    c_nonce: nonce,
+    c_nonce_expires_in: NONCE_TTL_SEC,
   };
 }
 

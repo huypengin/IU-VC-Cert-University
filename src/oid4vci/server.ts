@@ -13,7 +13,7 @@ import { initKeys } from "./keys.js";
 import oid4vciRoutes from "./oid4vci.routes.js";
 
 const PORT = Number(process.env.OID4VCI_PORT) || 8787;
-const BASE_URL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
+const BASE_URL = process.env.DEV ? `http://localhost:${PORT}` : process.env.BASE_URL;
 
 async function main(): Promise<void> {
   // Initialise ES256 keys

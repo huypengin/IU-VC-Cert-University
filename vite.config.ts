@@ -2,6 +2,8 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
 const IU_ENV_KEYS = [
+  "BASE_URL",
+  "OID4VCI_BASE_URL",
   "ISSUER_DID",
   "DEGREE_CONTEXT_URL",
   "IU_SMARTCERT_CONTEXT_URL",
@@ -11,6 +13,7 @@ const IU_ENV_KEYS = [
   "RPC_URL",
   "CONTRACT_ADDRESS",
   "ISSUER_ED25519_PRIVATE_KEY",
+  "DEV",
 ] as const;
 
 export default defineConfig(({ mode }) => {
