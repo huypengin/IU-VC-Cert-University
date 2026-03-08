@@ -12,11 +12,11 @@ import cors from "cors";
 import { initKeys } from "./keys.js";
 import oid4vciRoutes from "./oid4vci.routes.js";
 
-const PORT = Number(process.env.OID4VCI_PORT) || 8787;
+const PORT = Number(process.env.PORT) || Number(process.env.OID4VCI_PORT) || 8787;
 const BASE_URL = process.env.DEV ? `http://localhost:${PORT}` : process.env.BASE_URL;
 
 async function main(): Promise<void> {
-  // Initialise ES256 keys
+  // Initialise OID4VCI JWT signing keys
   await initKeys();
 
   const app = express();
@@ -34,7 +34,7 @@ async function main(): Promise<void> {
     res.json({ status: "ok", issuer: BASE_URL });
   });
 
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n🚀 OID4VCI Issuer Server running on port ${PORT}`);
     console.log(`   BASE_URL = ${BASE_URL}`);
     console.log(`\n📋 Endpoints:`);

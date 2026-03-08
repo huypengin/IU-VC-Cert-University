@@ -3,14 +3,14 @@ import type { IUSmartCertUniversityCredential } from "../1.1/types";
 export const SAMPLE_IUSMARTCERT_VC_2: IUSmartCertUniversityCredential = {
   "@context": [
     "https://www.w3.org/ns/credentials/v2",
-    "https://iu-smartcert.ngrok-free.dev/contexts/iu-edu-degree-v1.jsonld",
-    "https://iu-smartcert.ngrok-free.dev/contexts/iu-smartcert-v1.jsonld",
-    "https://iu-smartcert.ngrok-free.dev/contexts/merkle-receipt-v1.jsonld"
+    "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-edu-degree-v1.jsonld",
+    "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-smartcert-v1.jsonld",
+    "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/merkle-receipt-v1.jsonld"
   ],
   type: ["VerifiableCredential", "VNEduDegreeCredential", "IUSmartCertCredential"],
   id: "urn:uuid:example-degree-2025",
 
-  issuer: "did:web:iu-smartcert.ngrok-free.dev:issuers:iu",
+  issuer: "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:iu",
   validFrom: "2025-06-01T00:00:00Z",
 
   credentialSubject: {
@@ -36,15 +36,15 @@ export const SAMPLE_IUSMARTCERT_VC_2: IUSmartCertUniversityCredential = {
   },
 
   credentialSchema: {
-    id: "https://iu-smartcert.ngrok-free.dev/contexts/iu-edu-degree-v1.schema.jsonld",
+    id: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-edu-degree-v1.schema.jsonld",
     type: "JsonSchema"
   },
 
   credentialStatus: {
-    id: "https://iu-smartcert.ngrok-free.dev/status/degree/2025#list",
+    id: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/status/degree/2025#list",
     type: "StatusList2021Entry",
     statusPurpose: "revocation",
-    statusListCredential: "https://iu-smartcert.ngrok-free.dev/status/degree/2025",
+    statusListCredential: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/status/degree/2025",
     statusListIndex: "0"
   },
 
@@ -62,7 +62,7 @@ export const SAMPLE_IUSMARTCERT_VC_2: IUSmartCertUniversityCredential = {
   // Optional: if you want a “safe” place to attach extra artifacts:
   evidence: [
     {
-      id: "https://iu-smartcert.ngrok-free.dev/receipts/example-degree-2025.json",
+      id: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/receipts/example-degree-2025.json",
       type: ["VerifiableDocument"],
       digestMultibase: "uSHA256_MULTIBASE_OF_RECEIPT_JSON",
       "iu:purpose": "merkleReceipt"
@@ -75,7 +75,7 @@ export const SAMPLE_IUSMARTCERT_VC_2: IUSmartCertUniversityCredential = {
     proofPurpose: "assertionMethod",
     created: "2025-06-20T09:12:03Z",
     verificationMethod:
-      "did:web:iu-smartcert.ngrok-free.dev:issuers:iu#key-1",
+      "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:iu#key-1",
     proofValue: "zREAL_SIGNATURE_VALUE_HERE"
   }
 }

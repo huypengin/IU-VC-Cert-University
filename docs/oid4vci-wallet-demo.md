@@ -7,8 +7,10 @@
    - Local mode: `npm run oid4vci`
    - Public tunnel mode: `npm run oid4vci:tunnel`
 3. Start UI in a separate terminal: `npm run dev`.
-4. Confirm API is reachable at `${BASE_URL}/oid4vci/pickup-offer` (default `http://localhost:8787`).
-5. Open the UI in a browser and navigate to the `Wallet Pickup` tab.
+4. Configure `OID4VCI_PRIVATE_JWK` with the registry ES256 private JWK for the issuer.
+5. Ensure the JWK `kid` matches the DID verification method ID in the registry `did.json`, for example `did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:principle#key-1`.
+6. Confirm API is reachable at `${BASE_URL}/oid4vci/pickup-offer` (default `http://localhost:8787`).
+7. Open the UI in a browser and navigate to the `Wallet Pickup` tab.
 
 UI request target precedence:
 1. `OID4VCI_BASE_URL` (recommended explicit setting)
@@ -49,3 +51,4 @@ UI request target precedence:
 - Symptom: Wallet reports issuer metadata/JWKS lookup errors.
 - Action: Verify `BASE_URL/.well-known/openid-credential-issuer` and `BASE_URL/.well-known/jwks.json` are reachable from the wallet device.
 - Action: If testing on mobile, avoid `localhost`; use a LAN or tunnel URL.
+- Action: Verify the configured `OID4VCI_PRIVATE_JWK` is an ES256 P-256 key and its `kid` exactly matches the issuer DID document verification method.

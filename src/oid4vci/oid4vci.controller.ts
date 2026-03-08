@@ -12,7 +12,7 @@ import {
   buildJwtVc,
   OID4VCIError,
 } from "./oid4vci.service.js";
-import { getPublicJWKS } from "./keys.js";
+import { getPublicJWKS, getSigningAlg } from "./keys.js";
 
 // ─── GET /.well-known/openid-credential-issuer ──────────────────────────────
 
@@ -25,6 +25,8 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
     "VNEduDegreeCredential",
     "IUSmartCertCredential",
   ];
+
+  const signingAlg = getSigningAlg();
 
   res.json({
     credential_issuer: baseUrl,
@@ -45,8 +47,8 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
         },
         types: vcTypes,
 
-        cryptographic_binding_methods_supported: ["did:jwk", "did:key", "did:example"],
-        credential_signing_alg_values_supported: ["ES256"],
+        cryptographic_binding_methods_supported: ["did:web", "did:jwk", "did:key", "did:example"],
+        credential_signing_alg_values_supported: [signingAlg],
         display: [
           {
             name: "IU Bachelor Degree",

@@ -29,7 +29,13 @@ export default defineConfig(({ mode }) => {
       __IU_ENV__: JSON.stringify(iuEnv),
     },
     server: {
-      port: 5173,
+      port: Number(process.env.PORT) || 5173,
+      host: true, // Listen on 0.0.0.0
+    },
+    preview: {
+      port: Number(process.env.PORT) || 4173,
+      host: true, // Listen on 0.0.0.0
+      allowedHosts: true, // Allow Cloud Run hostnames
     },
   };
 });

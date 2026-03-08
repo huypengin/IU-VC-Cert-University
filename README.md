@@ -85,6 +85,10 @@ User flow:
 
 Full runbook: `docs/oid4vci-wallet-demo.md`
 
+Additional technical docs:
+- `docs/wallet-verification-import-flow.md`
+- `docs/issuer-architecture.md`
+
 ## Environment variables
 
 This project injects only a small allowlist of env keys (see `vite.config.ts`) so env keys match the names below (no `VITE_` prefix).
@@ -114,6 +118,17 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 - `NGROK_DOMAIN` (required for `npm run oid4vci:tunnel`)
   - example: `my-issuer.ngrok-free.app` (host only) or `https://my-issuer.ngrok-free.app`
 - `NGROK_AUTHTOKEN` (optional if not already configured with `ngrok config add-authtoken`)
+
+### OID4VCI issuer server only (not bundled to browser)
+
+- `OID4VCI_PRIVATE_JWK`
+  - Required for registry-aligned JWT issuance
+  - Must be an ES256 private JWK matching the registry DID document public key
+  - Set `kid` to the DID verification method ID, for example:
+    `did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:principle#key-1`
+
+When `OID4VCI_PRIVATE_JWK` is set this way, OID4VCI JWT VCs and issuer metadata
+advertise `ES256` and emit the same `kid` as the registry DID document.
 
 ## Issue a VC (UI)
 

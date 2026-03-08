@@ -2,6 +2,7 @@ import { ed25519 } from "@noble/curves/ed25519.js";
 import { base58btc } from "multiformats/bases/base58";
 
 import { getEnv } from "../env";
+import { normalizeRegistryUrl } from "./registryUrl";
 import type { DataIntegrityProof, SignedVc, UnsignedVc } from "./types";
 
 type SignOptions = { created?: string };
@@ -96,7 +97,7 @@ export async function signVc(
     throw new Error("signVc: vcWithoutProof must not already contain a proof");
   }
 
-  const issuerDid = getEnv("ISSUER_DID");
+  const issuerDid = normalizeRegistryUrl(getEnv("ISSUER_DID"));
   const ed25519PrivateKey = getEnv("ISSUER_ED25519_PRIVATE_KEY");
 
   const created = options.created ?? new Date().toISOString();

@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as jose from "jose";
-import { getPrivateKey, getKid } from "./keys.js";
+import { getPrivateKey, getKid, getSigningAlg } from "./keys.js";
 import {
   buildCredentialOfferUriByReference,
   type CredentialOfferPayload,
@@ -173,7 +173,7 @@ export function validateAccessToken(token: string): TokenEntry {
 // ─── JWT VC builder ─────────────────────────────────────────────────────────
 
 /**
- * Load vc.json, transform to JWT VC payload, sign with ES256.
+ * Load vc.json, transform to JWT VC payload, sign with the active OID4VCI key.
  * Returns the compact JWT string.
  */
 export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
@@ -209,9 +209,9 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
     },
   };
 
-  // Sign with ES256
+  // Sign with the active OID4VCI JWT key algorithm
   const jwt = await new jose.SignJWT(payload as jose.JWTPayload)
-    .setProtectedHeader({ alg: "ES256", typ: "JWT", kid: getKid() })
+    .setProtectedHeader({ alg: getSigningAlg(), typ: "JWT", kid: getKid() })
     .sign(getPrivateKey());
 
   return jwt;

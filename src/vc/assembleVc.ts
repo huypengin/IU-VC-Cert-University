@@ -1,4 +1,5 @@
 import { getEnv } from "../env";
+import { normalizeRegistryUrl } from "./registryUrl";
 import type {
   AssembleVcInput,
   ComponentProof,
@@ -32,11 +33,11 @@ export function assembleVc(input: AssembleVcInput): UnsignedVc {
     merkle,
   } = input;
 
-  const issuerDid = getEnv("ISSUER_DID");
-  const schemaUrl = getEnv("SCHEMA_URL");
-  const degreeContextUrl = getEnv("DEGREE_CONTEXT_URL");
-  const iuSmartcertContextUrl = getEnv("IU_SMARTCERT_CONTEXT_URL");
-  const merkleContextUrl = getEnv("MERKLE_CONTEXT_URL");
+  const issuerDid = normalizeRegistryUrl(getEnv("ISSUER_DID"));
+  const schemaUrl = normalizeRegistryUrl(getEnv("SCHEMA_URL"));
+  const degreeContextUrl = normalizeRegistryUrl(getEnv("DEGREE_CONTEXT_URL"));
+  const iuSmartcertContextUrl = normalizeRegistryUrl(getEnv("IU_SMARTCERT_CONTEXT_URL"));
+  const merkleContextUrl = normalizeRegistryUrl(getEnv("MERKLE_CONTEXT_URL"));
 
   const componentsProofs: ComponentProof[] = components.map((c) => {
     const proof = merkle.proofs[c.name];
@@ -101,4 +102,3 @@ export function assembleVc(input: AssembleVcInput): UnsignedVc {
     "iu:merkleReceipt": merkleReceipt,
   };
 }
-
