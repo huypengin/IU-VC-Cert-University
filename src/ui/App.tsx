@@ -9,7 +9,8 @@ import {
 } from "../core";
 import { assembleVc, signVc } from "../vc";
 import { verifyVC, type VerificationResult } from "../verifier";
-import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
+import { buildCredentialStatusConfig } from "../oid4vci/statusListStore";
+import { fetchPickupOffer, getOid4vciBaseUrl, type PickupOfferVm } from "./pickupApi";
 import { describeExpiryState } from "./pickupState";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -138,6 +139,11 @@ export default function App() {
           anchorTx: anchored.anchorTx,
           proofs,
         },
+        statusList: buildCredentialStatusConfig(
+          getOid4vciBaseUrl(),
+          form.credentialId,
+          "/status/degree/2026",
+        ),
       });
 
       const signed = await signVc(unsigned);

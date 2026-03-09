@@ -1,4 +1,5 @@
 import { gzipSync } from "node:zlib";
+import { createStatusListStore, getStatusListCredentialUrl } from "./statusListStore.js";
 
 export type StatusListCredential = {
   "@context": string[];
@@ -20,14 +21,6 @@ type BuildStatusListCredentialInput = {
   revokedIndexes: number[];
 };
 
-function normalizeBaseUrl(baseUrl: string): string {
-  return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-}
-
-function normalizeListPath(listPath: string): string {
-  return listPath.startsWith("/") ? listPath : `/${listPath}`;
-}
-
 function encodeBitstring(revokedIndexes: number[]): string {
   const maxIndex = revokedIndexes.length > 0 ? Math.max(...revokedIndexes) : 0;
   const bytes = Buffer.alloc(Math.floor(maxIndex / 8) + 1);
@@ -44,9 +37,7 @@ function encodeBitstring(revokedIndexes: number[]): string {
 export function buildStatusListCredential(
   input: BuildStatusListCredentialInput,
 ): StatusListCredential {
-  const baseUrl = normalizeBaseUrl(input.baseUrl);
-  const listPath = normalizeListPath(input.listPath);
-  const id = `${baseUrl}${listPath}`;
+  const id = getStatusListCredentialUrl(input.baseUrl, input.listPath);
 
   return {
     "@context": [
@@ -55,7 +46,7 @@ export function buildStatusListCredential(
     ],
     id,
     type: ["VerifiableCredential", "StatusList2021Credential"],
-    issuer: baseUrl,
+    issuer: input.baseUrl,
     validFrom: new Date().toISOString(),
     credentialSubject: {
       id: `${id}#list`,
@@ -76,10 +67,22 @@ export function getConfiguredStatusListCredential(): StatusListCredential {
     .filter(Boolean)
     .map((value) => Number.parseInt(value, 10))
     .filter((value) => Number.isInteger(value) && value >= 0);
+  const revokedCredentialIds = (process.env.STATUS_LIST_REVOKED_CREDENTIAL_IDS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const store = createStatusListStore({ baseUrl, listPath });
+  for (const credentialId of revokedCredentialIds) {
+    store.revoke(credentialId);
+  }
+  const combinedRevokedIndexes = [...new Set([
+    ...revokedIndexes,
+    ...store.getRevokedIndexes(),
+  ])].sort((left, right) => left - right);
 
   return buildStatusListCredential({
     baseUrl,
     listPath,
-    revokedIndexes,
+    revokedIndexes: combinedRevokedIndexes,
   });
 }
