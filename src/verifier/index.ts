@@ -23,7 +23,40 @@ import { resolveReceipt } from "./receiptResolver";
 import { verifyStandardVC } from "./standardVerification";
 import { verifyMerkleProofs } from "./merkleVerification";
 import { verifyChainAnchoring } from "./chainVerification";
-import type { VerificationResult, VerifyOptions } from "./types";
+import type {
+    VerificationResult,
+    VerifyOptions,
+    StandardVerificationResult,
+    MerkleVerificationResult,
+    ChainVerificationResult,
+    ReceiptSource,
+} from "./types";
+
+export function finalizeAdvancedVerification(
+    standard: StandardVerificationResult,
+    merkle: MerkleVerificationResult,
+    chain: ChainVerificationResult | undefined,
+    receiptSource: ReceiptSource,
+): VerificationResult {
+    if (chain) {
+        return {
+            valid: chain.valid,
+            phase: "advanced",
+            standard,
+            merkle,
+            chain,
+            receiptSource,
+        };
+    }
+
+    return {
+        valid: true,
+        phase: "advanced",
+        standard,
+        merkle,
+        receiptSource,
+    };
+}
 
 /**
  * Full two-phase verification pipeline for IU-SmartCert credentials.
@@ -87,35 +120,21 @@ export async function verifyVC(
         // Verify on-chain anchoring (optional)
         if (!skipChainVerification) {
             const chainResult = await verifyChainAnchoring(receipt, rpcUrl);
-            if (!chainResult.valid) {
-                return {
-                    valid: false,
-                    phase: "advanced",
-                    standard: standardResult,
-                    merkle: merkleResult,
-                    chain: chainResult,
-                    receiptSource: source,
-                };
-            }
-
-            return {
-                valid: true,
-                phase: "advanced",
-                standard: standardResult,
-                merkle: merkleResult,
-                chain: chainResult,
-                receiptSource: source,
-            };
+            return finalizeAdvancedVerification(
+                standardResult,
+                merkleResult,
+                chainResult,
+                source,
+            );
         }
 
         // Return without chain verification
-        return {
-            valid: true,
-            phase: "advanced",
-            standard: standardResult,
-            merkle: merkleResult,
-            receiptSource: source,
-        };
+        return finalizeAdvancedVerification(
+            standardResult,
+            merkleResult,
+            undefined,
+            source,
+        );
     } catch (err) {
         return {
             valid: false,

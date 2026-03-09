@@ -45,6 +45,12 @@ export type ChainVerificationResult = {
     chainId?: string;
     /** Contract address used for verification */
     contractAddress?: string;
+    /** Whether the credential is explicitly revoked in the contract revocation list */
+    revoked?: boolean;
+    /** Human-readable revocation reason returned by the contract */
+    revocationReason?: string;
+    /** The bytes32-compatible component hash used as the revocation lookup key */
+    revocationKey?: string;
     /** Error message if verification failed */
     error?: string;
 };
