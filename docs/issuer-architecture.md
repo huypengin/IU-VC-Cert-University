@@ -9,7 +9,7 @@ The repository contains two issuer-facing flows that share project context but s
 - UI issuance path:
   builds a VC JSON-LD document, signs it with Ed25519 Data Integrity, and lets the user download `vc.json`
 - Wallet pickup path:
-  exposes an OID4VCI issuer API that signs a JWT VC with ES256 for wallet import and serves a wallet-facing `StatusList2021Credential`
+  exposes an OID4VCI issuer API that signs a JWT VC with ES256 for wallet import
 
 These flows are related, but they are not the same signing pipeline.
 
@@ -109,13 +109,11 @@ Responsibilities:
 - create pre-authorized-code offers
 - issue access tokens and nonces
 - return wallet-importable credentials as `jwt_vc_json`
-- optionally mirror wallet-readable `StatusList2021Credential` data for local debugging
 
 Main endpoints:
 
 - `GET /.well-known/openid-credential-issuer`
 - `GET /.well-known/jwks.json`
-- `GET /status/degree/2026/status-list.json`
 - `GET /oid4vci/credential-offer`
 - `GET /oid4vci/pickup-offer`
 - `GET|POST /oid4vci/nonce`
@@ -127,9 +125,6 @@ Current storage model:
 - pre-authorized codes, access tokens, and nonces are stored in in-memory `Map`s
 - good for demos and local development
 - not durable across restarts
-- status-list revocation can be derived from configured credential IDs or explicit indexes
-- deterministic `credentialId -> statusListIndex` mapping is currently demo-oriented, not collision-resistant enough for high-scale production
-- canonical wallet-facing `statusListCredential` values are now aligned to the registry host, not the issuer API host
 
 ### 5. OID4VCI Key Management Layer
 
@@ -171,7 +166,6 @@ This is the most important architectural split in the repository.
 | --- | --- | --- | --- | --- |
 | UI issuance | React UI -> `src/vc/**` | `vc.json` | Data Integrity / Ed25519 | `ISSUER_ED25519_PRIVATE_KEY` |
 | Wallet pickup | Wallet -> `src/oid4vci/**` | JWT VC | JWT / ES256 | `OID4VCI_PRIVATE_JWK` |
-| Wallet revocation lookup | Wallet -> `src/oid4vci/statusList.ts` | `StatusList2021Credential` | VC JSON-LD | issuer-hosted public endpoint |
 
 Implication:
 
@@ -237,18 +231,8 @@ Flow summary:
 3. wallet discovers issuer metadata
 4. wallet exchanges pre-authorized code for token
 5. wallet requests credential
-6. issuer signs JWT with ES256 and includes `credentialStatus`
+6. issuer signs JWT with ES256
 7. wallet resolves `did:web` and verifies the JWT against the registry-hosted public key
-8. wallet can resolve the issuer status-list URL referenced by `credentialStatus`
-
-## Revocation Model
-
-The repository now uses a dual revocation model:
-
-- wallet-facing revocation uses `StatusList2021Entry` and the issuer-hosted `StatusList2021Credential`
-- IU-controlled verification can still use the Merkle receipt and smart-contract model as secondary evidence
-
-This split matters because a wallet can understand a standard `credentialStatus` entry without understanding IU-specific on-chain revocation logic.
 
 ## File Ownership By Area
 

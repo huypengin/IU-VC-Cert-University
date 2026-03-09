@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolve } from "node:path";
 import * as jose from "jose";
 import { initKeys } from "./keys.js";
 import { buildJwtVc } from "./oid4vci.service.js";
@@ -23,7 +22,6 @@ test("buildJwtVc signs with ES256 and registry verification method kid", async (
   const original = { ...process.env };
   process.env.ISSUER_DID = TEST_ISSUER_DID;
   process.env.OID4VCI_PRIVATE_JWK = TEST_ES256_JWK;
-  process.env.VC_JSON_PATH = resolve(process.cwd(), "src/oid4vci/__fixtures__/jwt-vc.json");
   delete process.env.ISSUER_ED25519_PRIVATE_KEY;
 
   try {

@@ -3,14 +3,13 @@ export type VCModel = {
     type: string | string[];
     credentialSubject: Record<string, any>;
     issuer: string | Record<string, any>;
-    issuanceDate?: string;
-    validFrom?: string;
+    issuanceDate: string;
     expirationDate?: string;
     proof?: Record<string, any>;
 }
 
 export type CredentialStatus = {
-    id?: string;
+    id: string;
     type: string;
     statusPurpose: string;
     statusListCredential: string;

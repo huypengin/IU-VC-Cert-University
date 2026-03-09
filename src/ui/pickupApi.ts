@@ -5,7 +5,7 @@ export interface PickupOfferVm {
 
 const DEFAULT_OID4VCI_BASE_URL = "http://localhost:8787";
 
-export function getOid4vciBaseUrl(): string {
+function getOid4vciBaseUrl(): string {
   if (typeof __IU_ENV__ === "undefined" || __IU_ENV__.DEV === "true") return DEFAULT_OID4VCI_BASE_URL;
   return __IU_ENV__.OID4VCI_BASE_URL || __IU_ENV__.BASE_URL || DEFAULT_OID4VCI_BASE_URL;
 }

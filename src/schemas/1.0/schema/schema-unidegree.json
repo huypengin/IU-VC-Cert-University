@@ -13,9 +13,9 @@
     "type":"JsonSchema"
   },
   "credentialStatus": {
-    "type":"StatusList2021Entry",
+    "type":"StatusList202XEntry",
     "statusPurpose":"revocation",
-    "statusListCredential":"https://registry.example/status/degree/2025/status-list.json",
+    "statusListCredential":"https://<you>.github.io/status/2025-07.json",
     "statusListIndex":"367291"
   },
   "proof": {
