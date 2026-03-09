@@ -7,6 +7,7 @@ import {
   getIssuerMetadata,
   getJwks,
   getStatusListCredential,
+  redirectLegacyStatusListCredential,
   getCredentialOffer,
   getPickupOffer,
   getNonce,
@@ -20,7 +21,8 @@ const router = Router();
 // Well-known endpoints
 router.get("/.well-known/openid-credential-issuer", getIssuerMetadata);
 router.get("/.well-known/jwks.json", getJwks);
-router.get("/status/degree/2026", getStatusListCredential);
+router.get("/status/degree/2026", redirectLegacyStatusListCredential);
+router.get("/status/degree/2026/status-list.json", getStatusListCredential);
 
 // OID4VCI flow endpoints
 router.get("/oid4vci/credential-offer", getCredentialOffer);

@@ -88,6 +88,7 @@ Additional technical docs:
 - `docs/wallet-verification-import-flow.md`
 - `docs/issuer-architecture.md`
 - `docs/statuslist-revocation.md`
+- `docs/statuslist2021-revocation-alignment.md`
 
 ## Environment variables
 
@@ -133,17 +134,20 @@ advertise `ES256` and emit the same `kid` as the registry DID document.
 ### Status list revocation (optional, wallet-facing)
 
 - `STATUS_LIST_PATH`
-  - defaults to `/status/degree/2026`
+  - defaults to `/status/degree/2026/status-list.json`
 - `STATUS_LIST_REVOKED_INDEXES`
   - optional comma-separated list of revoked numeric status indexes
 - `STATUS_LIST_REVOKED_CREDENTIAL_IDS`
   - optional comma-separated list of credential IDs to mark revoked
   - the issuer derives a deterministic `statusListIndex` from `credentialId`
 
-The issuer now exposes a public `StatusList2021Credential` endpoint for wallet-facing
-revocation and also embeds `credentialStatus` in generated credentials. The wallet label
-`valid` or `never expired` is not the same as revocation; temporal validity comes from
-`validFrom` / `validUntil`, while revocation comes from the status list document.
+Generated credentials now point at the canonical registry-hosted
+`.../status/<category>/<year>/status-list.json` URL derived from the configured
+registry asset host (`SCHEMA_URL` / context URLs). The local issuer can still expose a
+short-lived mirror route for debugging, but it is not the authoritative mutable revocation source.
+
+The wallet label `valid` or `never expired` is not the same as revocation; temporal validity
+comes from `validFrom` / `validUntil`, while revocation comes from the status list document.
 
 ## Issue a VC (UI)
 
@@ -156,7 +160,7 @@ Notes:
 - The generated VC includes:
   - `@context` with VC v2 + 3 custom contexts
   - `type` = `["VerifiableCredential","VNEduDegreeCredential","IUSmartCertCredential"]`
-  - `credentialStatus` = `StatusList2021Entry` pointing at the issuer status list
+  - `credentialStatus` = `StatusList2021Entry` pointing at the registry status list
   - `credentialSubject["iu:components"]` with `componentHash`
   - top-level `"iu:merkleReceipt"` with `merkleRoot`, `anchorTx`, and per-component proofs
   - top-level `proof` = `DataIntegrityProof` with `cryptosuite: "eddsa-rdfc-2022"`

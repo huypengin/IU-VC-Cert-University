@@ -50,7 +50,7 @@ test("buildJwtVc reads canonical VC from VC_JSON_PATH when provided", async () =
     assert.equal(payload.vc.credentialStatus?.type, "StatusList2021Entry");
     assert.equal(
       payload.vc.credentialStatus?.statusListCredential,
-      "https://issuer.example/status/degree/2026",
+      "https://issuer.example/status/degree/2026/status-list.json",
     );
     assert.equal(payload.vc.credentialStatus?.statusListIndex, "42");
   } finally {

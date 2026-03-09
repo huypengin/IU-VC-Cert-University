@@ -1,5 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { createStatusListStore, getStatusListCredentialUrl } from "./statusListStore.js";
+import { normalizeRegistryUrl } from "../vc/registryUrl.js";
 
 export type StatusListCredential = {
   "@context": string[];
@@ -18,6 +19,7 @@ export type StatusListCredential = {
 type BuildStatusListCredentialInput = {
   baseUrl: string;
   listPath: string;
+  issuerDid: string;
   revokedIndexes: number[];
 };
 
@@ -41,12 +43,13 @@ export function buildStatusListCredential(
 
   return {
     "@context": [
-      "https://www.w3.org/2018/credentials/v1",
+      "https://www.w3.org/ns/credentials/v2",
       "https://w3id.org/vc/status-list/2021/v1",
+      "https://w3id.org/security/data-integrity/v2",
     ],
     id,
     type: ["VerifiableCredential", "StatusList2021Credential"],
-    issuer: input.baseUrl,
+    issuer: input.issuerDid,
     validFrom: new Date().toISOString(),
     credentialSubject: {
       id: `${id}#list`,
@@ -57,10 +60,20 @@ export function buildStatusListCredential(
   };
 }
 
+function getRegistryBaseUrl(port: number): string {
+  const candidate =
+    process.env.SCHEMA_URL?.trim()
+    || process.env.DEGREE_CONTEXT_URL?.trim()
+    || process.env.BASE_URL?.trim()
+    || `http://localhost:${port}`;
+  return new URL(normalizeRegistryUrl(candidate)).origin;
+}
+
 export function getConfiguredStatusListCredential(): StatusListCredential {
   const port = Number(process.env.OID4VCI_PORT) || 8787;
-  const baseUrl = process.env.BASE_URL ?? `http://localhost:${port}`;
-  const listPath = process.env.STATUS_LIST_PATH ?? "/status/degree/2026";
+  const baseUrl = getRegistryBaseUrl(port);
+  const issuerDid = process.env.ISSUER_DID ?? baseUrl;
+  const listPath = process.env.STATUS_LIST_PATH ?? "/status/degree/2026/status-list.json";
   const revokedIndexes = (process.env.STATUS_LIST_REVOKED_INDEXES ?? "")
     .split(",")
     .map((value) => value.trim())
@@ -83,6 +96,7 @@ export function getConfiguredStatusListCredential(): StatusListCredential {
   return buildStatusListCredential({
     baseUrl,
     listPath,
+    issuerDid,
     revokedIndexes: combinedRevokedIndexes,
   });
 }

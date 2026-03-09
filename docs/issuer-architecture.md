@@ -109,13 +109,13 @@ Responsibilities:
 - create pre-authorized-code offers
 - issue access tokens and nonces
 - return wallet-importable credentials as `jwt_vc_json`
-- serve wallet-readable `StatusList2021Credential` data
+- optionally mirror wallet-readable `StatusList2021Credential` data for local debugging
 
 Main endpoints:
 
 - `GET /.well-known/openid-credential-issuer`
 - `GET /.well-known/jwks.json`
-- `GET /status/degree/2026`
+- `GET /status/degree/2026/status-list.json`
 - `GET /oid4vci/credential-offer`
 - `GET /oid4vci/pickup-offer`
 - `GET|POST /oid4vci/nonce`
@@ -129,6 +129,7 @@ Current storage model:
 - not durable across restarts
 - status-list revocation can be derived from configured credential IDs or explicit indexes
 - deterministic `credentialId -> statusListIndex` mapping is currently demo-oriented, not collision-resistant enough for high-scale production
+- canonical wallet-facing `statusListCredential` values are now aligned to the registry host, not the issuer API host
 
 ### 5. OID4VCI Key Management Layer
 
