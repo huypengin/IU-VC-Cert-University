@@ -8,9 +8,10 @@ import {
   type ComponentInput,
 } from "../core";
 import { assembleVc, signVc } from "../vc";
+import { normalizeRegistryUrl } from "../vc/registryUrl";
 import { verifyVC, type VerificationResult } from "../verifier";
 import { buildCredentialStatusConfig } from "../oid4vci/statusListStore";
-import { fetchPickupOffer, getOid4vciBaseUrl, type PickupOfferVm } from "./pickupApi";
+import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
 import { describeExpiryState } from "./pickupState";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -140,9 +141,9 @@ export default function App() {
           proofs,
         },
         statusList: buildCredentialStatusConfig(
-          getOid4vciBaseUrl(),
+          new URL(normalizeRegistryUrl(getEnv("SCHEMA_URL"))).origin,
           form.credentialId,
-          "/status/degree/2026",
+          "/status/degree/2026/status-list.json",
         ),
       });
 

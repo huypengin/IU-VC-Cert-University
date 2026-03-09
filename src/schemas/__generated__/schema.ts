@@ -30,6 +30,7 @@ export interface CredentialSchema {
 }
 
 export interface CredentialStatus {
+  id?: string;
   type?: string;
   statusPurpose?: string;
   statusListCredential?: string;

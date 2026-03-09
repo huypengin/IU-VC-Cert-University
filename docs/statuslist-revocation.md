@@ -5,7 +5,8 @@ This repository now exposes a wallet-facing revocation path based on `StatusList
 ## What It Does
 
 - generated credentials include `credentialStatus.type = StatusList2021Entry`
-- the issuer serves `GET /status/degree/2026`
+- generated credentials point at the canonical registry `.../status/<category>/<year>/status-list.json` URL
+- the issuer can expose `GET /status/degree/2026/status-list.json` as a short-lived mirror route for local testing
 - wallet-compatible revocation is separated from the IU-specific Merkle and smart-contract verification flow
 
 ## Why This Exists
@@ -23,7 +24,7 @@ Wallets such as Sphereon can understand standard `credentialStatus` formats, but
 ## Configuration
 
 - `STATUS_LIST_PATH`
-  - default: `/status/degree/2026`
+  - default: `/status/degree/2026/status-list.json`
 - `STATUS_LIST_REVOKED_INDEXES`
   - example: `2,9,42`
 - `STATUS_LIST_REVOKED_CREDENTIAL_IDS`
@@ -34,3 +35,4 @@ Wallets such as Sphereon can understand standard `credentialStatus` formats, but
 - the current deterministic `credentialId -> statusListIndex` mapping is good enough for demo interoperability, but not a substitute for a production-grade persistent allocation system
 - if you regenerate the same credential ID, you get the same status index
 - if you change the credential ID, you change the status index
+- the authoritative live wallet-facing status list should come from the registry runtime/storage layer, not from rebuilding static issuer assets

@@ -63,8 +63,8 @@ sequenceDiagram
     Wallet->>DID: GET /issuers/principle/did.json
     DID-->>Wallet: did:web document with ES256 JsonWebKey2020 key
 
-    Wallet->>API: GET /status/degree/2026
-    API-->>Wallet: StatusList2021Credential
+    Wallet->>Registry: GET /status/degree/2026/status-list.json
+    Registry-->>Wallet: StatusList2021Credential
 
     opt Optional wallet display / semantic processing
         Wallet->>Registry: GET context/schema URLs referenced by issuer assets
@@ -180,7 +180,7 @@ The response shape is:
 }
 ```
 
-The wallet-facing credential now also carries `vc.credentialStatus` pointing to the issuer status list URL.
+The wallet-facing credential now also carries `vc.credentialStatus` pointing to the canonical registry status list URL.
 
 ### 6. Wallet resolves the issuer public key from the registry
 
@@ -210,7 +210,7 @@ This is the public key material the wallet uses to verify the JWT signature.
 When the credential includes:
 
 - `credentialStatus.type = StatusList2021Entry`
-- `credentialStatus.statusListCredential = <issuer status list URL>`
+- `credentialStatus.statusListCredential = <registry status list URL>`
 - `credentialStatus.statusListIndex = <bit index>`
 
 the wallet can fetch the issuer status list and inspect the indicated bit to determine whether the credential is revoked.
@@ -218,7 +218,7 @@ the wallet can fetch the issuer status list and inspect the indicated bit to det
 Important distinction:
 
 - `valid` / `never expired` style labels come from temporal validity such as `validFrom` and `validUntil`
-- revocation comes from `credentialStatus` and the issuer status list document
+- revocation comes from `credentialStatus` and the registry status list document
 
 ### 8. Wallet verifies before import
 

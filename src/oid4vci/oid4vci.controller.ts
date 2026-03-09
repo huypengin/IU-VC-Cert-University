@@ -81,7 +81,12 @@ export function getJwks(_req: Request, res: Response): void {
 }
 
 export function getStatusListCredential(_req: Request, res: Response): void {
+  res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
   res.json(getConfiguredStatusListCredential());
+}
+
+export function redirectLegacyStatusListCredential(_req: Request, res: Response): void {
+  res.redirect(302, "/status/degree/2026/status-list.json");
 }
 
 // ─── GET /oid4vci/credential-offer ──────────────────────────────────────────

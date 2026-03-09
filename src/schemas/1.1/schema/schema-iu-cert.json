@@ -63,10 +63,10 @@
   },
 
   "credentialStatus": {
-    "id": "https://uni.example.edu/status/degree/2026#42",
+    "id": "https://uni.example.edu/status/degree/2026/status-list.json#42",
     "type": "StatusList2021Entry",
     "statusPurpose": "revocation",
-    "statusListCredential": "https://uni.example.edu/status/degree/2026",
+    "statusListCredential": "https://uni.example.edu/status/degree/2026/status-list.json",
     "statusListIndex": "42"
   },
 

@@ -38,16 +38,16 @@ test("assembleVc includes StatusList2021Entry when status config is provided", (
     },
     statusList: {
       statusPurpose: "revocation",
-      statusListCredential: "https://issuer.example/status/degree/2026",
+      statusListCredential: "https://issuer.example/status/degree/2026/status-list.json",
       statusListIndex: 42,
     },
   });
 
   assert.deepEqual(vc.credentialStatus, {
-    id: "https://issuer.example/status/degree/2026#42",
+    id: "https://issuer.example/status/degree/2026/status-list.json#42",
     type: "StatusList2021Entry",
     statusPurpose: "revocation",
-    statusListCredential: "https://issuer.example/status/degree/2026",
+    statusListCredential: "https://issuer.example/status/degree/2026/status-list.json",
     statusListIndex: "42",
   });
 });

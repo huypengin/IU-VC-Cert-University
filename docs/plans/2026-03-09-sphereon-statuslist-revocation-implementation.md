@@ -185,7 +185,7 @@ export function getStatusListCredential(_req: Request, res: Response): void {
 - Register a public route such as:
 
 ```ts
-router.get("/status/degree/2026", getStatusListCredential);
+router.get("/status/degree/2026/status-list.json", getStatusListCredential);
 ```
 
 - Extend issuer metadata tests if any metadata/display field should reference the status-list-backed credential profile.
@@ -309,4 +309,3 @@ Expected: all target files contain the expected terminology
 git add README.md docs/issuer-architecture.md docs/wallet-verification-import-flow.md docs/statuslist-revocation.md
 git commit -m "docs: add status list revocation guidance for Sphereon wallet"
 ```
-

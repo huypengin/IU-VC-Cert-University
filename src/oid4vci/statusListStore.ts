@@ -14,7 +14,9 @@ function normalizeBaseUrl(baseUrl: string): string {
 }
 
 function normalizeListPath(listPath: string): string {
-  return listPath.startsWith("/") ? listPath : `/${listPath}`;
+  const normalized = listPath.startsWith("/") ? listPath : `/${listPath}`;
+  if (normalized.endsWith("/status-list.json")) return normalized;
+  return `${normalized.replace(/\/+$/, "")}/status-list.json`;
 }
 
 function stableHash(input: string): number {
