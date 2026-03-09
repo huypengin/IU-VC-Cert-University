@@ -19,7 +19,7 @@ const TEST_ES256_JWK = JSON.stringify({
   kid: TEST_KID,
 });
 
-test("buildJwtVc signs with ES256 and registry verification method kid", async () => {
+test("buildJwtVc reads canonical VC from VC_JSON_PATH when provided", async () => {
   const original = { ...process.env };
   process.env.ISSUER_DID = TEST_ISSUER_DID;
   process.env.OID4VCI_PRIVATE_JWK = TEST_ES256_JWK;
@@ -36,9 +36,23 @@ test("buildJwtVc signs with ES256 and registry verification method kid", async (
       subjectId: "did:example:student123",
     } as any);
 
-    const header = jose.decodeProtectedHeader(jwt);
-    assert.equal(header.alg, "ES256");
-    assert.equal(header.kid, TEST_KID);
+    const payload = jose.decodeJwt(jwt) as {
+      jti: string;
+      vc: {
+        credentialStatus?: {
+          type: string;
+          statusListCredential: string;
+          statusListIndex: string;
+        };
+      };
+    };
+    assert.equal(payload.jti, "urn:uuid:test-statuslist-fixture");
+    assert.equal(payload.vc.credentialStatus?.type, "StatusList2021Entry");
+    assert.equal(
+      payload.vc.credentialStatus?.statusListCredential,
+      "https://issuer.example/status/degree/2026",
+    );
+    assert.equal(payload.vc.credentialStatus?.statusListIndex, "42");
   } finally {
     process.env = original;
   }

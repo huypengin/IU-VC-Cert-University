@@ -11,7 +11,6 @@ Out of scope (intentionally omitted):
 - Wallet implementation
 - Multiple VC formats
 - OID4VP
-- StatusList2021 / public bitstring status endpoints
 - Verifier UI
 - Selective disclosure inside wallets
 
@@ -88,6 +87,7 @@ Full runbook: `docs/oid4vci-wallet-demo.md`
 Additional technical docs:
 - `docs/wallet-verification-import-flow.md`
 - `docs/issuer-architecture.md`
+- `docs/statuslist-revocation.md`
 
 ## Environment variables
 
@@ -130,6 +130,21 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 When `OID4VCI_PRIVATE_JWK` is set this way, OID4VCI JWT VCs and issuer metadata
 advertise `ES256` and emit the same `kid` as the registry DID document.
 
+### Status list revocation (optional, wallet-facing)
+
+- `STATUS_LIST_PATH`
+  - defaults to `/status/degree/2026`
+- `STATUS_LIST_REVOKED_INDEXES`
+  - optional comma-separated list of revoked numeric status indexes
+- `STATUS_LIST_REVOKED_CREDENTIAL_IDS`
+  - optional comma-separated list of credential IDs to mark revoked
+  - the issuer derives a deterministic `statusListIndex` from `credentialId`
+
+The issuer now exposes a public `StatusList2021Credential` endpoint for wallet-facing
+revocation and also embeds `credentialStatus` in generated credentials. The wallet label
+`valid` or `never expired` is not the same as revocation; temporal validity comes from
+`validFrom` / `validUntil`, while revocation comes from the status list document.
+
 ## Issue a VC (UI)
 
 1) Fill `.env` at repo root.
@@ -141,6 +156,7 @@ Notes:
 - The generated VC includes:
   - `@context` with VC v2 + 3 custom contexts
   - `type` = `["VerifiableCredential","VNEduDegreeCredential","IUSmartCertCredential"]`
+  - `credentialStatus` = `StatusList2021Entry` pointing at the issuer status list
   - `credentialSubject["iu:components"]` with `componentHash`
   - top-level `"iu:merkleReceipt"` with `merkleRoot`, `anchorTx`, and per-component proofs
   - top-level `proof` = `DataIntegrityProof` with `cryptosuite: "eddsa-rdfc-2022"`

@@ -13,6 +13,7 @@ import {
   OID4VCIError,
 } from "./oid4vci.service.js";
 import { getPublicJWKS, getSigningAlg } from "./keys.js";
+import { getConfiguredStatusListCredential } from "./statusList.js";
 
 // ─── GET /.well-known/openid-credential-issuer ──────────────────────────────
 
@@ -77,6 +78,10 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
 
 export function getJwks(_req: Request, res: Response): void {
   res.json(getPublicJWKS());
+}
+
+export function getStatusListCredential(_req: Request, res: Response): void {
+  res.json(getConfiguredStatusListCredential());
 }
 
 // ─── GET /oid4vci/credential-offer ──────────────────────────────────────────

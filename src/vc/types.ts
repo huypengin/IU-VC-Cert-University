@@ -84,6 +84,14 @@ export type UnsignedVc = {
   validUntil?: string;
   credentialSubject: Record<string, unknown>;
   credentialSchema?: { id: string; type: "JsonSchema" | string;[k: string]: unknown };
+  credentialStatus?: {
+    id?: string;
+    type: "StatusList2021Entry" | string;
+    statusPurpose: string;
+    statusListCredential: string;
+    statusListIndex: string | number;
+    [key: string]: unknown;
+  };
   /** W3C VC v2 evidence array - preferred location for Merkle receipt */
   evidence?: IUSmartCertEvidence[];
   /** @deprecated Legacy location for Merkle receipt, use evidence instead */
@@ -116,5 +124,9 @@ export type AssembleVcInput = {
     anchorTx: string;
     proofs: Record<string, string[]>;
   };
+  statusList?: {
+    statusPurpose: string;
+    statusListCredential: string;
+    statusListIndex: string | number;
+  };
 };
-

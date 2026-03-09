@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2"
+  ],
+  "type": [
+    "VerifiableCredential",
+    "IUSmartCertCredential"
+  ],
+  "id": "urn:uuid:test-statuslist-fixture",
+  "issuer": "did:web:issuer.example",
+  "validFrom": "2026-03-09T00:00:00Z",
+  "credentialSubject": {
+    "id": "did:example:student123",
+    "degree": {
+      "type": "BachelorDegree",
+      "name": "BSc in Computer Science"
+    }
+  },
+  "credentialStatus": {
+    "id": "https://issuer.example/status/degree/2026#42",
+    "type": "StatusList2021Entry",
+    "statusPurpose": "revocation",
+    "statusListCredential": "https://issuer.example/status/degree/2026",
+    "statusListIndex": "42"
+  }
+}
