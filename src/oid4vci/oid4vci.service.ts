@@ -181,7 +181,9 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
   const issuerDid = process.env.ISSUER_DID ?? baseUrl;
 
   // Read canonical VC
-  const vcPath = resolve(process.cwd(), "vc.json");
+  const vcPath = process.env.VC_JSON_PATH
+    ? resolve(process.env.VC_JSON_PATH)
+    : resolve(process.cwd(), "vc.json");
   const rawVc = JSON.parse(readFileSync(vcPath, "utf-8"));
 
   const now = Math.floor(Date.now() / 1000);
