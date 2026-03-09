@@ -36,8 +36,23 @@ test("buildJwtVc reads canonical VC from VC_JSON_PATH when provided", async () =
       subjectId: "did:example:student123",
     } as any);
 
-    const payload = jose.decodeJwt(jwt) as { jti: string };
+    const payload = jose.decodeJwt(jwt) as {
+      jti: string;
+      vc: {
+        credentialStatus?: {
+          type: string;
+          statusListCredential: string;
+          statusListIndex: string;
+        };
+      };
+    };
     assert.equal(payload.jti, "urn:uuid:test-statuslist-fixture");
+    assert.equal(payload.vc.credentialStatus?.type, "StatusList2021Entry");
+    assert.equal(
+      payload.vc.credentialStatus?.statusListCredential,
+      "https://issuer.example/status/degree/2026",
+    );
+    assert.equal(payload.vc.credentialStatus?.statusListIndex, "42");
   } finally {
     process.env = original;
   }

@@ -191,6 +191,7 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
   // Extract evidence and merkleReceipt as non-critical claims
   const evidence = rawVc.evidence ?? [];
   const merkleReceipt = rawVc["iu:merkleReceipt"] ?? null;
+  const credentialStatus = rawVc.credentialStatus ?? undefined;
 
   // Build JWT payload
   const payload: Record<string, unknown> = {
@@ -205,6 +206,7 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
       ],
       type: rawVc.type ?? ["VerifiableCredential"],
       credentialSubject: rawVc.credentialSubject ?? {},
+      ...(credentialStatus ? { credentialStatus } : {}),
       // Non-critical claims – NOT in "proof"
       evidence,
       ...(merkleReceipt ? { iu_merkle_receipt: merkleReceipt } : {}),

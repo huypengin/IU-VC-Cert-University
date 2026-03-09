@@ -31,6 +31,7 @@ export function assembleVc(input: AssembleVcInput): UnsignedVc {
     degree,
     components,
     merkle,
+    statusList,
   } = input;
 
   const issuerDid = normalizeRegistryUrl(getEnv("ISSUER_DID"));
@@ -96,6 +97,17 @@ export function assembleVc(input: AssembleVcInput): UnsignedVc {
       id: schemaUrl,
       type: "JsonSchema",
     },
+    ...(statusList
+      ? {
+        credentialStatus: {
+          id: `${statusList.statusListCredential}#${statusList.statusListIndex}`,
+          type: "StatusList2021Entry",
+          statusPurpose: statusList.statusPurpose,
+          statusListCredential: statusList.statusListCredential,
+          statusListIndex: String(statusList.statusListIndex),
+        },
+      }
+      : {}),
     // W3C VC v2 evidence array (preferred)
     evidence: [evidenceEntry],
     // Legacy field for backward compatibility
