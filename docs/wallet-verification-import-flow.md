@@ -9,7 +9,6 @@ This document covers:
 - the UI call that starts wallet pickup
 - the OID4VCI calls from wallet to issuer
 - the registry calls used for issuer key verification
-- the status-list lookup used for wallet-facing revocation
 - the point at which the wallet can safely import the credential into its local DB/store
 
 This document does not describe proprietary Sphereon wallet internals. The final DB import step is described from standard wallet behavior: verify first, persist second.
@@ -23,7 +22,6 @@ This document does not describe proprietary Sphereon wallet internals. The final
 | Wallet | Resolves issuer metadata, requests token and credential, verifies signature, imports credential |
 | OID4VCI Issuer API | Exposes metadata, offer, token, nonce, and credential endpoints |
 | Registry DID endpoint | Serves the issuer `did:web` document and public verification key |
-| Status list endpoint | Serves the issuer `StatusList2021Credential` used for revocation lookup |
 | Registry context/schema endpoints | May serve referenced JSON-LD contexts or schemas for downstream display/validation flows |
 | Wallet DB / secure store | Stores the credential after verification succeeds |
 
@@ -62,9 +60,6 @@ sequenceDiagram
 
     Wallet->>DID: GET /issuers/principle/did.json
     DID-->>Wallet: did:web document with ES256 JsonWebKey2020 key
-
-    Wallet->>Registry: GET /status/degree/2026/status-list.json
-    Registry-->>Wallet: StatusList2021Credential
 
     opt Optional wallet display / semantic processing
         Wallet->>Registry: GET context/schema URLs referenced by issuer assets
@@ -180,8 +175,6 @@ The response shape is:
 }
 ```
 
-The wallet-facing credential now also carries `vc.credentialStatus` pointing to the canonical registry status list URL.
-
 ### 6. Wallet resolves the issuer public key from the registry
 
 The wallet reads:
@@ -205,22 +198,7 @@ The registry returns a DID document containing:
 
 This is the public key material the wallet uses to verify the JWT signature.
 
-### 7. Wallet resolves revocation status
-
-When the credential includes:
-
-- `credentialStatus.type = StatusList2021Entry`
-- `credentialStatus.statusListCredential = <registry status list URL>`
-- `credentialStatus.statusListIndex = <bit index>`
-
-the wallet can fetch the issuer status list and inspect the indicated bit to determine whether the credential is revoked.
-
-Important distinction:
-
-- `valid` / `never expired` style labels come from temporal validity such as `validFrom` and `validUntil`
-- revocation comes from `credentialStatus` and the registry status list document
-
-### 8. Wallet verifies before import
+### 7. Wallet verifies before import
 
 The wallet should only import the credential after these checks succeed:
 
@@ -229,12 +207,11 @@ The wallet should only import the credential after these checks succeed:
 3. The algorithm is acceptable, currently `ES256`.
 4. The issuer in the credential matches the expected issuer identity.
 5. Time-based claims such as `iat` and `nbf` are acceptable.
-6. If `credentialStatus` is present, the referenced status list does not mark the credential revoked.
-7. The wallet accepts the credential format and claim structure.
+6. The wallet accepts the credential format and claim structure.
 
 If any of those checks fail, the credential should be rejected before persistence.
 
-### 9. Wallet imports the credential into local storage
+### 8. Wallet imports the credential into local storage
 
 After successful verification, the wallet can store the credential in its local DB / secure credential store.
 

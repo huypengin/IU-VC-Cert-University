@@ -18,4 +18,4 @@ export const HASH_ALG = "sha256" as const;
 export { hashComponents } from "./hashing/hashComponents";
 export { buildMerkle } from "./merkle/merkle";
 export { anchorRoot } from "./chain/registry";
-
+export { revokeCredentialOnChain } from "./chain/revocation";

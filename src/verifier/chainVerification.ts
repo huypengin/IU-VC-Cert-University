@@ -14,6 +14,7 @@
 import { ethers } from "ethers";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import type { IUSmartCertMerkleReceipt } from "../vc/types";
+import { getRevocationKeyFromReceipt } from "../revocation/key";
 import type { ChainVerificationResult } from "./types";
 
 // Full ABI for the AnchorRegistry contract
@@ -41,6 +42,16 @@ const ANCHOR_REGISTRY_ABI = [
             { name: "leaf", type: "bytes32" },
         ],
         outputs: [{ name: "", type: "bool" }],
+    },
+    {
+        type: "function",
+        name: "isValid",
+        stateMutability: "view",
+        inputs: [{ name: "credentialMandatoryComponent", type: "bytes32" }],
+        outputs: [
+            { name: "", type: "bool" },
+            { name: "", type: "string" },
+        ],
     },
     {
         type: "event",
@@ -104,6 +115,52 @@ function computeLeafHash(componentHash: string): string {
     const encoder = new TextEncoder();
     const leafBytes = keccak_256(encoder.encode(componentHash));
     return "0x" + Array.from(leafBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+type RevocationReadableContract = {
+    isValid(revocationKey: string): Promise<[boolean, string] | { 0: boolean; 1: string }>;
+};
+
+type AnchorRegistryReadableContract = RevocationReadableContract & {
+    verify(proof: string[], leaf: string): Promise<boolean>;
+};
+
+export async function checkRevocationStatus(
+    contract: RevocationReadableContract,
+    receipt: IUSmartCertMerkleReceipt,
+    context: {
+        anchorTxConfirmed?: boolean;
+        chainId?: string;
+        contractAddress?: string;
+    } = {},
+): Promise<ChainVerificationResult> {
+    const revocationKey = getRevocationKeyFromReceipt(receipt);
+    const result = await contract.isValid(hashToBytes32(revocationKey));
+    const isValidResult = Array.isArray(result) ? result[0] : result[0];
+    const reason = Array.isArray(result) ? result[1] : result[1];
+
+    if (!isValidResult) {
+        return {
+            valid: false,
+            anchorTxConfirmed: context.anchorTxConfirmed ?? true,
+            chainId: context.chainId,
+            contractAddress: context.contractAddress,
+            revoked: true,
+            revocationReason: reason,
+            revocationKey,
+            error: `Credential revoked on-chain: ${reason}`,
+        };
+    }
+
+    return {
+        valid: true,
+        anchorTxConfirmed: context.anchorTxConfirmed ?? true,
+        chainId: context.chainId,
+        contractAddress: context.contractAddress,
+        revoked: false,
+        revocationReason: reason,
+        revocationKey,
+    };
 }
 
 /**
@@ -224,7 +281,11 @@ export async function verifyChainAnchoring(
         }
 
         // ── Step 2: Verify each component proof on-chain ──────
-        const contract = new ethers.Contract(contractAddress, ANCHOR_REGISTRY_ABI, provider);
+        const contract = new ethers.Contract(
+            contractAddress,
+            ANCHOR_REGISTRY_ABI,
+            provider,
+        ) as unknown as AnchorRegistryReadableContract;
 
         for (const componentProof of componentsProofs) {
             // The JS tree hashes leaves as: keccak256(utf8(componentHash))
@@ -256,13 +317,17 @@ export async function verifyChainAnchoring(
             }
         }
 
-        // All checks passed
-        return {
-            valid: true,
+        const revocationResult = await checkRevocationStatus(contract, receipt, {
             anchorTxConfirmed: true,
             chainId,
             contractAddress,
-        };
+        });
+
+        if (!revocationResult.valid) {
+            return revocationResult;
+        }
+
+        return revocationResult;
     } catch (err) {
         return {
             valid: false,

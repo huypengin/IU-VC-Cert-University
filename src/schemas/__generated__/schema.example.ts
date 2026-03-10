@@ -22,10 +22,10 @@ export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
     type: "JsonSchema"
   },
   credentialStatus: {
-    id: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/status/degree/2025/status-list.json#0",
+      id: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/status/degree/2025#list",
     type: "StatusList2021Entry",
     statusPurpose: "revocation",
-    statusListCredential: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/status/degree/2025/status-list.json",
+    statusListCredential: "https://infra-vc-registry-web-911368042037.asia-east2.run.app/status/degree/2025",
     statusListIndex: "0"
   },
   proof: {

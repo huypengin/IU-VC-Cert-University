@@ -63,11 +63,14 @@
   },
 
   "credentialStatus": {
-    "id": "https://uni.example.edu/status/degree/2026/status-list.json#42",
-    "type": "StatusList2021Entry",
+    "type": "IUSmartCertOnChainStatusEntry",
     "statusPurpose": "revocation",
-    "statusListCredential": "https://uni.example.edu/status/degree/2026/status-list.json",
-    "statusListIndex": "42"
+
+    "statusChainId": "eip155:11155111",
+    "statusContractAddress": "0xREGISTRY...",
+
+    "statusMethod": "isRevoked(bytes32)",
+    "statusEntry": "0xMANDATORY_COMPONENT_HASH"
   },
 
   "proof": {

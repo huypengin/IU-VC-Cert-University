@@ -13,6 +13,22 @@
   },
   {
     "type": "function",
+    "name": "revokeCertificate",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "credentialMandatoryComponent",
+        "type": "bytes32"
+      },
+      {
+        "name": "reason",
+        "type": "string"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
     "name": "verify",
     "stateMutability": "view",
     "inputs": [

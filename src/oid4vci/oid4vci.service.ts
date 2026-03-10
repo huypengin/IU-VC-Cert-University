@@ -181,9 +181,7 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
   const issuerDid = process.env.ISSUER_DID ?? baseUrl;
 
   // Read canonical VC
-  const vcPath = process.env.VC_JSON_PATH
-    ? resolve(process.env.VC_JSON_PATH)
-    : resolve(process.cwd(), "vc.json");
+  const vcPath = resolve(process.cwd(), "vc.json");
   const rawVc = JSON.parse(readFileSync(vcPath, "utf-8"));
 
   const now = Math.floor(Date.now() / 1000);
@@ -191,7 +189,6 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
   // Extract evidence and merkleReceipt as non-critical claims
   const evidence = rawVc.evidence ?? [];
   const merkleReceipt = rawVc["iu:merkleReceipt"] ?? null;
-  const credentialStatus = rawVc.credentialStatus ?? undefined;
 
   // Build JWT payload
   const payload: Record<string, unknown> = {
@@ -206,7 +203,6 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
       ],
       type: rawVc.type ?? ["VerifiableCredential"],
       credentialSubject: rawVc.credentialSubject ?? {},
-      ...(credentialStatus ? { credentialStatus } : {}),
       // Non-critical claims – NOT in "proof"
       evidence,
       ...(merkleReceipt ? { iu_merkle_receipt: merkleReceipt } : {}),
