@@ -1,13 +1,15 @@
 # Issuer Architecture
 
-This document describes the architecture of the issuer repository, with emphasis on the split between the JSON-LD/Data Integrity issuance path and the OID4VCI/JWT issuance path used by wallets.
+This document describes the architecture of the issuer repository, with emphasis on the split between the JSON-LD/Data Integrity issuance path, the custom smart-contract verifier path, and the OID4VCI/JWT issuance path used by wallets.
 
 ## High-Level View
 
-The repository contains two issuer-facing flows that share project context but serve different consumers:
+The repository contains three main flows that share project context but serve different consumers:
 
 - UI issuance path:
   builds a VC JSON-LD document, signs it with Ed25519 Data Integrity, and lets the user download `vc.json`
+- UI verification and revocation path:
+  verifies anchored VCs against the smart contract and lets the owner wallet revoke them on-chain
 - Wallet pickup path:
   exposes an OID4VCI issuer API that signs a JWT VC with ES256 for wallet import
 
@@ -31,8 +33,12 @@ flowchart LR
     User --> UI
     UI --> Core
     UI --> VC
+    UI --> Verifier[Verifier<br/>src/verifier/**]
+    UI --> Revocation[Revocation Helpers<br/>src/revocation/**]
     UI --> API
     Core --> VC
+    Verifier --> Core
+    Revocation --> Verifier
     API --> Keys
     API --> VCFile
     API --> Tunnel
@@ -54,6 +60,7 @@ Responsibilities:
 
 - browser-facing issuer screens
 - input capture for issuance
+- verification and revocation controls
 - wallet pickup UI
 - QR/deep-link presentation for OID4VCI pickup
 
@@ -73,11 +80,29 @@ Responsibilities:
 - hashing
 - Merkle tree construction
 - anchoring support
+- MetaMask transaction helpers for smart-contract interactions
 - data preparation shared by issuance behavior
 
 This layer contains domain logic that should remain UI-agnostic.
 
-### 3. VC Assembly And Data Integrity Layer
+### 3. Revocation Helper Layer
+
+Location:
+
+- `src/revocation/**`
+
+Responsibilities:
+
+- derive the phase-1 revocation key from a VC or Merkle receipt
+- build a revocation request from the credential's embedded receipt
+
+Current rule:
+
+- the smart-contract revocation key is the **first mandatory component hash** in `componentsProofs`
+
+This rule intentionally minimizes scope by reusing the contract's existing `revokeCertificate(bytes32,string)` and `isValid(bytes32)` model.
+
+### 4. VC Assembly And Data Integrity Layer
 
 Location:
 
@@ -97,7 +122,28 @@ Current signing behavior:
 
 This path is used for downloadable `vc.json` issuance from the UI.
 
-### 4. OID4VCI API Layer
+### 5. Verifier Layer
+
+Location:
+
+- `src/verifier/**`
+
+Responsibilities:
+
+- standard VC checks
+- Merkle receipt validation
+- chain anchoring verification
+- smart-contract revocation verification
+
+Current revocation behavior on `main`:
+
+- after anchoring checks succeed, the verifier calls `isValid(bytes32)` on the same contract
+- if the contract reports revoked, the overall VC result becomes `valid = false`
+- the verifier surfaces `revoked`, `revocationReason`, and `revocationKey` for operator visibility
+
+This is an IU-specific revocation path. It is not intended as a wallet-interoperable revocation mechanism.
+
+### 6. OID4VCI API Layer
 
 Location:
 
@@ -126,7 +172,7 @@ Current storage model:
 - good for demos and local development
 - not durable across restarts
 
-### 5. OID4VCI Key Management Layer
+### 7. OID4VCI Key Management Layer
 
 Primary file:
 
@@ -147,7 +193,7 @@ Current OID4VCI signing behavior:
 - required `kid` form:
   `did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:principle#key-1`
 
-### 6. External Registry Dependency
+### 8. External Registry Dependency
 
 The issuer depends on a separate registry for public identity and static definitions:
 
@@ -165,12 +211,14 @@ This is the most important architectural split in the repository.
 | Flow | Entry point | Output | Signing format | Key material |
 | --- | --- | --- | --- | --- |
 | UI issuance | React UI -> `src/vc/**` | `vc.json` | Data Integrity / Ed25519 | `ISSUER_ED25519_PRIVATE_KEY` |
+| UI verify + revoke | React UI -> `src/verifier/**`, `src/revocation/**`, `src/core/chain/**` | verification result + revoke tx | smart-contract reads/writes | MetaMask owner wallet |
 | Wallet pickup | Wallet -> `src/oid4vci/**` | JWT VC | JWT / ES256 | `OID4VCI_PRIVATE_JWK` |
 
 Implication:
 
 - fixing wallet import issues usually means looking in `src/oid4vci/**`
 - fixing downloaded VC proof issues usually means looking in `src/vc/**`
+- fixing custom revocation verification issues usually means looking in `src/verifier/**`, `src/revocation/**`, and `src/core/chain/**`
 
 The two paths intentionally use different signing technologies because they target different consumers.
 
@@ -200,7 +248,33 @@ Flow summary:
 4. `signVc` adds the Ed25519 Data Integrity proof
 5. browser downloads `vc.json`
 
-### B. Wallet pickup OID4VCI flow
+### B. UI verify and revoke flow
+
+```mermaid
+flowchart LR
+    Browser[Browser UI]
+    Parse[Parse vc.json]
+    Resolve[Resolve receipt + revocation key]
+    Verify[verifyVC]
+    Contract[AnchorRegistry]
+    Wallet[MetaMask owner wallet]
+
+    Browser --> Parse
+    Parse --> Resolve
+    Resolve --> Verify
+    Verify --> Contract
+    Browser --> Wallet
+    Wallet --> Contract
+```
+
+Flow summary:
+
+1. user pastes VC JSON into the verifier tab
+2. verifier resolves the Merkle receipt from the VC
+3. revocation logic derives the first mandatory component hash
+4. verifier checks anchoring and then `isValid(bytes32)` on the contract
+5. if the owner wallet submits `revokeCertificate(bytes32,string)`, subsequent verification returns invalid
+### C. Wallet pickup OID4VCI flow
 
 ```mermaid
 flowchart LR
@@ -238,8 +312,10 @@ Flow summary:
 
 | Area | Main files | Responsibility |
 | --- | --- | --- |
-| UI | `src/ui/**` | Browser UX, forms, wallet pickup trigger |
-| Core logic | `src/core/**` | Hashing, Merkle logic, anchoring support |
+| UI | `src/ui/**` | Browser UX, issue/verify/revoke controls, wallet pickup trigger |
+| Core logic | `src/core/**` | Hashing, Merkle logic, anchoring and revoke transaction helpers |
+| Revocation helpers | `src/revocation/**` | Revocation key derivation and VC request extraction |
+| Verifier | `src/verifier/**` | Standard, Merkle, chain, and revocation validation |
 | VC generation | `src/vc/assembleVc.ts`, `src/vc/signVc.ts`, `src/vc/types.ts` | JSON-LD VC building and Ed25519 proof generation |
 | OID4VCI HTTP surface | `src/oid4vci/oid4vci.routes.ts`, `src/oid4vci/oid4vci.controller.ts` | Endpoint routing and HTTP payloads |
 | OID4VCI state + issuance | `src/oid4vci/oid4vci.service.ts` | Codes, tokens, nonces, JWT payload assembly |

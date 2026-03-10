@@ -25,13 +25,15 @@ Verification is divided into three distinct layers. For a credential to be fully
         *   **Path Traversal**: The verifier reconstructs the root by iteratively hashing the provided `proof` (sibling hashes) with the computed leaf hash.
 *   **Status**: Mandatory in Advanced Mode.
 
-### 3. Chain Anchoring Layer (Phase 2b)
-*   **What it checks**: Whether the `merkleRoot` from Phase 2a was officially anchored on the Sepolia Ethereum blockchain by the issuer.
+### 3. Chain Anchoring and Revocation Layer (Phase 2b)
+*   **What it checks**: Whether the `merkleRoot` from Phase 2a was officially anchored on the Sepolia Ethereum blockchain by the issuer, and whether the credential remains valid in the smart-contract revocation list.
 *   **Technical Details**:
     *   **Double-Verification Strategy**:
         1.  **Event Analysis**: The verifier fetches the transaction receipt for `anchorTx`. It parses the blockchain logs to find a `RootAnchored` event. This event must contain the exact `merkleRoot` and must have been emitted by the correct `contractAddress`.
         2.  **Contract State Call**: For each component, the verifier calls the `verify(proof, leaf)` function on the smart contract.
+        3.  **Revocation Call**: The verifier derives the revocation key from the **first mandatory component hash** and calls `isValid(bytes32)`.
     *   **Leaf Construction (On-Chain)**: To match the contract's expectations, the verifier computes the leaf as `keccak256(utf8(componentHash))`. Note that `componentHash` is the SHA-256 hash stored in the VC.
+    *   **Revocation Rule**: If `isValid(bytes32)` returns `false`, the VC is treated as invalid even when it is still within its temporal validity window.
     *   **Blockchain**: Default is **Sepolia (Chain ID 11155111)** via MetaMask or public RPC.
 *   **Status**: **Optional** (can be skipped via the "Skip chain verification" toggle).
 
@@ -71,7 +73,7 @@ The system returns `valid: true` because:
 
 ### Summary
 *   **Skip = Integrity Only**: Proves the data matches what the issuer signed in the receipt.
-*   **No Skip = Full Trust**: Proves the data matches the issuer's signature **AND** the immutable record on the blockchain.
+*   **No Skip = Full Trust**: Proves the data matches the issuer's signature, the immutable record on the blockchain, and the current smart-contract revocation state.
 ## Phase 2b: On-Chain Verification Process Flow
 
 When the verifier executes Phase 2b, it follows these exact steps:
@@ -94,7 +96,12 @@ When the verifier executes Phase 2b, it follows these exact steps:
     *   It calls the smart contract's `verify(proof, leaf)` view function.
     *   The contract computes the root using the provided Merkle proof and returns `true` only if it matches the `MTRoot` stored in the contract's state.
 
-5.  **Final Verdict**:
-    *   If all steps (Provider -> Receipt -> Event -> Verify Call) succeed, the layer returns **Valid**.
+5.  **Revocation Check (`isValid`)**:
+    *   The verifier reads the first mandatory component hash from the receipt.
+    *   It calls `isValid(bytes32)` with that hash.
+    *   If the contract returns `(false, reason)`, the verifier marks the VC invalid and surfaces the revoke reason.
+
+6.  **Final Verdict**:
+    *   If all steps (Provider -> Receipt -> Event -> Verify Call -> Revocation Check) succeed, the layer returns **Valid**.
 
 In development, skipping the chain check allows for faster testing of the complex Merkle logic without needing constant blockchain connectivity.

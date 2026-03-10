@@ -1,12 +1,16 @@
-# Troubleshooting Phase 2: Chain Anchoring
+# Troubleshooting Phase 2: Chain Anchoring and Revocation
 
-Phase 2 verification checks if the **Merkle Root** in your credential matches the immutable record stored on the Ethereum Sepolia blockchain.
+Phase 2 verification checks two things:
+
+1. whether the **Merkle Root** in your credential matches the immutable record anchored on Ethereum Sepolia
+2. whether the credential's smart-contract revocation key is still marked valid on-chain
 
 ## How Verification Works
 1.  **Connect**: The verifier connects to a Sepolia RPC node (a gateway to the blockchain).
 2.  **Call Contract**: It sends a request to your smart contract address (`0x058...`).
-3.  **Verify Root**: It calls the `MTRoot()` function to read the currently stored Merkle Root from the blockchain.
-4.  **Compare**: It checks if the `MTRoot` from the blockchain matches the `merkleRoot` in your `vc.json`.
+3.  **Verify Root**: It validates the anchored transaction and calls `verify(proof, leaf)` for each disclosed component.
+4.  **Check Revocation**: It derives the revocation key from the **first mandatory component hash** in the receipt and calls `isValid(bytes32)`.
+5.  **Compare**: The VC is valid only if anchoring succeeds and the contract does not report that key as revoked.
 
 ---
 
@@ -28,6 +32,23 @@ This error means the blockchain received your request but **rejected it**.
 2.  **Bad Address**: The contract address `0x058...` is empty (no code deployed) on the network you are connected to.
 3.  **Empty Contract**: You are calling a contract that hasn't been initialized with a Merkle Root yet.
 
+## ❌ Why does the VC say "never expires" but still fail verification?
+
+Temporal validity and revocation are separate checks.
+
+- `never expires` means the VC has no `validUntil`
+- `revoked` means the smart contract returned `isValid(...) = false`
+
+So a VC can remain temporally valid and still be rejected by the custom verifier because it has been revoked on-chain.
+
+## ❌ Why does revoke fail in MetaMask?
+
+Common causes:
+1.  **Wrong Wallet Account**: `revokeCertificate(bytes32,string)` must be sent by the contract owner or an authorized account.
+2.  **Wrong Network**: The UI chain ID and the connected MetaMask chain must match the VC receipt, typically Sepolia `11155111`.
+3.  **Bad Contract Address**: The VC points at a contract that does not expose `revokeCertificate`.
+4.  **Malformed VC Input**: The pasted VC does not include a valid receipt or has no mandatory component proof, so the revocation key cannot be derived.
+
 ## ✅ How to Validate It
 To get this to pass, you need a stable connection to Sepolia:
 
@@ -42,6 +63,11 @@ To get this to pass, you need a stable connection to Sepolia:
     *   Go to **[Sepolia Etherscan](https://sepolia.etherscan.io/)** and paste the address.
     *   If you see the contract code and a "verify" method in the "Read Contract" tab, the contract is live.
 
-3.  **Or... Just Skip It**
+3.  **Check Revocation State**
+    *   Use the first mandatory component hash from the receipt as the lookup key.
+    *   In the contract's read methods, call `isValid(bytes32)` with that hash.
+    *   If it returns `(false, "issuer revoked")`, the verifier should reject the VC.
+
+4.  **Or... Just Skip It**
     *   If you just want to verify the **Data Integrity** (that the diploma matches the receipt), check **"Skip chain verification"**.
-    *   The "Anchor Confirmed" check will be skipped, but the mathematical proofs (Merkle) will still be validated.
+    *   The chain anchoring and revocation checks will be skipped, but the mathematical proofs (Merkle) will still be validated.
