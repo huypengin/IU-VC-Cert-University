@@ -44,6 +44,16 @@ const ANCHOR_REGISTRY_ABI = [
         outputs: [{ name: "", type: "bool" }],
     },
     {
+        type: "function",
+        name: "isValid",
+        stateMutability: "view",
+        inputs: [{ name: "credentialMandatoryComponent", type: "bytes32" }],
+        outputs: [
+            { name: "", type: "bool" },
+            { name: "", type: "string" },
+        ],
+    },
+    {
         type: "event",
         name: "RootAnchored",
         inputs: [
@@ -109,6 +119,10 @@ function computeLeafHash(componentHash: string): string {
 
 type RevocationReadableContract = {
     isValid(revocationKey: string): Promise<[boolean, string] | { 0: boolean; 1: string }>;
+};
+
+type AnchorRegistryReadableContract = RevocationReadableContract & {
+    verify(proof: string[], leaf: string): Promise<boolean>;
 };
 
 export async function checkRevocationStatus(
@@ -267,7 +281,11 @@ export async function verifyChainAnchoring(
         }
 
         // ── Step 2: Verify each component proof on-chain ──────
-        const contract = new ethers.Contract(contractAddress, ANCHOR_REGISTRY_ABI, provider);
+        const contract = new ethers.Contract(
+            contractAddress,
+            ANCHOR_REGISTRY_ABI,
+            provider,
+        ) as unknown as AnchorRegistryReadableContract;
 
         for (const componentProof of componentsProofs) {
             // The JS tree hashes leaves as: keccak256(utf8(componentHash))

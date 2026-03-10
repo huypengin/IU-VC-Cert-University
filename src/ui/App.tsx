@@ -5,10 +5,13 @@ import {
   anchorRoot,
   buildMerkle,
   hashComponents,
+  revokeCredentialOnChain,
   type ComponentInput,
 } from "../core";
+import { buildRevocationRequestFromVc } from "../revocation/request";
 import { assembleVc, signVc } from "../vc";
 import { verifyVC, type VerificationResult } from "../verifier";
+import { describeChainStatus } from "./chainStatus";
 import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
 import { describeExpiryState } from "./pickupState";
 import React, { useEffect, useMemo, useState } from "react";
@@ -41,6 +44,8 @@ function downloadJson(filename: string, data: unknown) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+type RevokeResult = Awaited<ReturnType<typeof revokeCredentialOnChain>>;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<"issue" | "verify" | "pickup">("issue");
@@ -82,6 +87,10 @@ export default function App() {
   const [verifying, setVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerificationResult | null>(null);
+  const [revokeReason, setRevokeReason] = useState("issuer revoked");
+  const [revoking, setRevoking] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+  const [revokeResult, setRevokeResult] = useState<RevokeResult | null>(null);
 
   // Wallet pickup state
   const [pickupSubjectId, setPickupSubjectId] = useState("did:example:student123");
@@ -166,6 +175,25 @@ export default function App() {
       setVerifyError(e instanceof Error ? e.message : String(e));
     } finally {
       setVerifying(false);
+    }
+  }
+
+  async function onRevoke() {
+    setRevokeError(null);
+    setRevokeResult(null);
+    setRevoking(true);
+    try {
+      const parsedVc = JSON.parse(vcInput);
+      const request = await buildRevocationRequestFromVc(parsedVc);
+      const result = await revokeCredentialOnChain({
+        ...request,
+        reason: revokeReason,
+      });
+      setRevokeResult(result);
+    } catch (e) {
+      setRevokeError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRevoking(false);
     }
   }
 
@@ -494,6 +522,35 @@ export default function App() {
               </div>
               {verifyError && <pre className="error">{verifyError}</pre>}
             </section>
+
+            <section className="card">
+              <h2>Revoke On-Chain</h2>
+              <label>
+                Revocation reason
+                <textarea
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  rows={3}
+                />
+              </label>
+              <div className="actions">
+                <button
+                  type="button"
+                  onClick={onRevoke}
+                  disabled={!vcInput.trim() || !revokeReason.trim() || revoking}
+                  className="danger"
+                >
+                  {revoking ? "Revoking..." : "Revoke Credential"}
+                </button>
+              </div>
+              {revokeError && <pre className="error">{revokeError}</pre>}
+              {revokeResult && (
+                <div className="result-info">
+                  Revoked on-chain via {revokeResult.contractAddress} on {revokeResult.chainId}. Tx:{" "}
+                  {revokeResult.revokeTx}
+                </div>
+              )}
+            </section>
           </div>
 
           {/* Verification Results */}
@@ -555,13 +612,31 @@ export default function App() {
                   <h3>Phase 2: Chain Anchoring</h3>
                   {verifyResult.chain ? (
                     <div className="result-items">
-                      <div className={`result-item ${verifyResult.chain.valid ? "pass" : "fail"}`}>
-                        <span className="indicator">{verifyResult.chain.valid ? "✓" : "✗"}</span>
+                      <div
+                        className={`result-item ${
+                          verifyResult.chain.anchorTxConfirmed ? "pass" : "fail"
+                        }`}
+                      >
+                        <span className="indicator">
+                          {verifyResult.chain.anchorTxConfirmed ? "✓" : "✗"}
+                        </span>
                         Anchor Confirmed
                       </div>
                       {verifyResult.chain.chainId && (
                         <div className="result-item info">
                           Chain: {verifyResult.chain.chainId}
+                        </div>
+                      )}
+                      {typeof verifyResult.chain.revoked === "boolean" && (
+                        <div
+                          className={`result-item ${
+                            verifyResult.chain.revoked ? "fail" : "pass"
+                          }`}
+                        >
+                          <span className="indicator">
+                            {verifyResult.chain.revoked ? "✗" : "✓"}
+                          </span>
+                          {verifyResult.chain.revoked ? "Revoked On-Chain" : "Not Revoked"}
                         </div>
                       )}
                     </div>
@@ -573,6 +648,19 @@ export default function App() {
                   )}
                   {verifyResult.chain?.error && (
                     <div className="result-error">{verifyResult.chain.error}</div>
+                  )}
+                  {verifyResult.chain && (
+                    <div className="result-info">{describeChainStatus(verifyResult.chain)}</div>
+                  )}
+                  {verifyResult.chain?.revocationReason && (
+                    <div className="result-info">
+                      Revocation reason: {verifyResult.chain.revocationReason}
+                    </div>
+                  )}
+                  {verifyResult.chain?.revocationKey && (
+                    <div className="result-info">
+                      Revocation key: {verifyResult.chain.revocationKey}
+                    </div>
                   )}
                 </div>
               </div>
