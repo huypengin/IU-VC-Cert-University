@@ -6,6 +6,7 @@ import type { Request, Response } from "express";
 import {
   createCredentialOffer,
   createPickupOfferResponse,
+  createPickupOfferResponseFromVc,
   exchangeCodeForToken,
   generateNonceResponse,
   validateAccessToken,
@@ -93,6 +94,37 @@ export function getCredentialOffer(_req: Request, res: Response): void {
 export function getPickupOffer(req: Request, res: Response): void {
   const subjectId = ((req.query.subject_id as string) ?? "did:example:student123");
   res.json(createPickupOfferResponse(subjectId));
+}
+
+export function postPickupOffer(req: Request, res: Response): void {
+  const uploadedVc = req.body?.vc;
+  if (!uploadedVc || typeof uploadedVc !== "object" || Array.isArray(uploadedVc)) {
+    res.status(400).json({
+      error: "invalid_request",
+      error_description: "Request body must include a vc object",
+    });
+    return;
+  }
+
+  const bodySubjectId = req.body?.subject_id as string | undefined;
+  const vcSubjectId = (uploadedVc as { credentialSubject?: { id?: string } }).credentialSubject?.id;
+
+  if (bodySubjectId && vcSubjectId && bodySubjectId !== vcSubjectId) {
+    res.status(400).json({
+      error: "invalid_request",
+      error_description:
+        "subject_id in request body does not match vc.credentialSubject.id",
+    });
+    return;
+  }
+
+  const subjectId = bodySubjectId ?? vcSubjectId ?? "did:example:student123";
+  res.json(
+    createPickupOfferResponseFromVc({
+      subjectId,
+      vc: uploadedVc as Record<string, unknown>,
+    }),
+  );
 }
 
 // ─── POST /oid4vci/nonce ────────────────────────────────────────────────────

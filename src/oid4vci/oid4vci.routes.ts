@@ -8,6 +8,7 @@ import {
   getJwks,
   getCredentialOffer,
   getPickupOffer,
+  postPickupOffer,
   getNonce,
   postNonce,
   postToken,
@@ -23,6 +24,7 @@ router.get("/.well-known/jwks.json", getJwks);
 // OID4VCI flow endpoints
 router.get("/oid4vci/credential-offer", getCredentialOffer);
 router.get("/oid4vci/pickup-offer", getPickupOffer);
+router.post("/oid4vci/pickup-offer", postPickupOffer);
 router.get("/oid4vci/nonce", getNonce);
 router.post("/oid4vci/nonce", postNonce);
 router.post("/oid4vci/token", postToken);

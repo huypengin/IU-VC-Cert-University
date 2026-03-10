@@ -3,8 +3,6 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import * as jose from "jose";
 import { getPrivateKey, getKid, getSigningAlg } from "./keys.js";
 import {
@@ -14,12 +12,23 @@ import {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export interface UploadedVcSnapshot extends Record<string, unknown> {
+  id?: string;
+  type?: unknown;
+  evidence?: unknown;
+  credentialSubject?: Record<string, unknown> & {
+    id?: string;
+  };
+  "iu:merkleReceipt"?: unknown;
+}
+
 interface PreAuthEntry {
   createdAt: number;
   expiresAt: number;
   used: boolean;
   subjectId: string;
   credentialConfigId: string;
+  uploadedVc?: UploadedVcSnapshot;
 }
 
 interface TokenEntry {
@@ -27,6 +36,7 @@ interface TokenEntry {
   expiresAt: number;
   credentialConfigId: string;
   subjectId: string;
+  uploadedVc?: UploadedVcSnapshot;
 }
 
 // ─── In-memory stores ───────────────────────────────────────────────────────
@@ -44,6 +54,7 @@ const NONCE_TTL_SEC = 300; // 5 min
 export function createPreAuthCode(
   subjectId: string = "did:example:student123",
   credentialConfigId: string = "IU_Degree_JWTVC",
+  uploadedVc?: UploadedVcSnapshot,
 ): string {
   const code = randomUUID();
   const now = Date.now();
@@ -53,6 +64,7 @@ export function createPreAuthCode(
     used: false,
     subjectId,
     credentialConfigId,
+    uploadedVc,
   });
   return code;
 }
@@ -82,6 +94,24 @@ export function createPickupOfferResponse(subjectId: string) {
   const offer = createCredentialOffer(subjectId, code);
   const offerUrl = new URL("/oid4vci/credential-offer", baseUrl);
   offerUrl.searchParams.set("subject_id", subjectId);
+  offerUrl.searchParams.set("pre_authorized_code", code);
+
+  return {
+    offer,
+    offerUri: buildCredentialOfferUriByReference(offerUrl.toString()),
+    expiresInSec: PRE_AUTH_TTL_SEC,
+  };
+}
+
+export function createPickupOfferResponseFromVc(input: {
+  subjectId: string;
+  vc: UploadedVcSnapshot;
+}) {
+  const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
+  const code = createPreAuthCode(input.subjectId, "IU_Degree_JWTVC", input.vc);
+  const offer = createCredentialOffer(input.subjectId, code);
+  const offerUrl = new URL("/oid4vci/credential-offer", baseUrl);
+  offerUrl.searchParams.set("subject_id", input.subjectId);
   offerUrl.searchParams.set("pre_authorized_code", code);
 
   return {
@@ -146,6 +176,7 @@ export function exchangeCodeForToken(code: string): {
     expiresAt: now + TOKEN_TTL_SEC * 1000,
     credentialConfigId: entry.credentialConfigId,
     subjectId: entry.subjectId,
+    uploadedVc: entry.uploadedVc,
   });
 
   // Generate c_nonce for proof-of-possession
@@ -170,19 +201,28 @@ export function validateAccessToken(token: string): TokenEntry {
   return entry;
 }
 
+export function getUploadedVcForAccessToken(token: string): UploadedVcSnapshot {
+  return getUploadedVcFromTokenMeta(validateAccessToken(token));
+}
+
+function getUploadedVcFromTokenMeta(tokenMeta: TokenEntry): UploadedVcSnapshot {
+  if (!tokenMeta.uploadedVc) {
+    throw new OID4VCIError("invalid_token", "Uploaded VC not found for access token");
+  }
+  return tokenMeta.uploadedVc;
+}
+
 // ─── JWT VC builder ─────────────────────────────────────────────────────────
 
 /**
- * Load vc.json, transform to JWT VC payload, sign with the active OID4VCI key.
+ * Transform the uploaded VC snapshot into a JWT VC payload and sign it with
+ * the active OID4VCI key.
  * Returns the compact JWT string.
  */
 export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
   const baseUrl = process.env.BASE_URL ?? "http://localhost:8787";
   const issuerDid = process.env.ISSUER_DID ?? baseUrl;
-
-  // Read canonical VC
-  const vcPath = resolve(process.cwd(), "vc.json");
-  const rawVc = JSON.parse(readFileSync(vcPath, "utf-8"));
+  const rawVc = getUploadedVcFromTokenMeta(tokenMeta);
 
   const now = Math.floor(Date.now() / 1000);
 

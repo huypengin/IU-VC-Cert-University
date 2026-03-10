@@ -32,6 +32,11 @@ test("buildJwtVc signs with ES256 and registry verification method kid", async (
       credentialConfigId: "IU_Degree_JWTVC",
       expiresAt: Date.now() + 60_000,
       subjectId: "did:example:student123",
+      uploadedVc: {
+        id: "urn:uuid:test-vc",
+        type: ["VerifiableCredential", "VNEduDegreeCredential"],
+        credentialSubject: { id: "did:example:student123" },
+      },
     } as any);
 
     const header = jose.decodeProtectedHeader(jwt);
