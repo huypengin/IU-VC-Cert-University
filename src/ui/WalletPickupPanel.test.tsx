@@ -17,8 +17,10 @@ test("WalletPickupPanel is upload-only and disables Add to Wallet before a VC is
       canCreateOffer={false}
       selectedFilename={null}
       detectedSubjectId={null}
+      copyFeedback={null}
       onFileChange={() => undefined}
       onCreatePickupOffer={() => undefined}
+      onCopyOfferUrl={() => undefined}
     />,
   );
 
@@ -43,13 +45,18 @@ test("WalletPickupPanel shows the selected file, detected subject, and QR action
       canCreateOffer={true}
       selectedFilename="student.vc.json"
       detectedSubjectId="did:example:student123"
+      copyFeedback="Offer URL copied"
       onFileChange={() => undefined}
       onCreatePickupOffer={() => undefined}
+      onCopyOfferUrl={() => undefined}
     />,
   );
 
   assert.match(html, /student\.vc\.json/);
   assert.match(html, /did:example:student123/);
-  assert.match(html, /Open Wallet Deep Link/);
+  assert.match(html, /Copy Offer URL/);
   assert.match(html, /Generate new QR/);
+  assert.match(html, /openid-credential-offer:\/\/\?credential_offer=x/);
+  assert.match(html, /Offer URL copied/);
+  assert.doesNotMatch(html, /Open Wallet Deep Link/);
 });

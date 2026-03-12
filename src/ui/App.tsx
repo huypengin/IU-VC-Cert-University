@@ -13,6 +13,7 @@ import {
   removeStudentFromIssueBatchState,
   type IssueBatchStudentState,
 } from "./issueBatchState";
+import { copyOfferUrl } from "./offerClipboard";
 import { createPickupOfferFromVc, type PickupOfferVm } from "./pickupApi";
 import { parsePickupVcJson, type ParsedPickupVcFile } from "./pickupVcFile";
 import { describeExpiryState } from "./pickupState";
@@ -74,6 +75,7 @@ export default function App() {
   const [pickupBusy, setPickupBusy] = useState(false);
   const [pickupError, setPickupError] = useState<string | null>(null);
   const [pickupOffer, setPickupOffer] = useState<PickupOfferVm | null>(null);
+  const [pickupCopyFeedback, setPickupCopyFeedback] = useState<string | null>(null);
   const [pickupExpiresAtMs, setPickupExpiresAtMs] = useState<number | null>(null);
   const [pickupNowMs, setPickupNowMs] = useState(Date.now());
 
@@ -181,6 +183,7 @@ export default function App() {
   async function onPickupFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     setPickupError(null);
     setPickupOffer(null);
+    setPickupCopyFeedback(null);
     setPickupExpiresAtMs(null);
     setPickupNowMs(Date.now());
 
@@ -204,6 +207,7 @@ export default function App() {
   async function onCreatePickupOffer() {
     if (!pickupUpload) return;
     setPickupError(null);
+    setPickupCopyFeedback(null);
     setPickupBusy(true);
     try {
       const nextOffer = await createPickupOfferFromVc({
@@ -217,6 +221,18 @@ export default function App() {
       setPickupError(e instanceof Error ? e.message : String(e));
     } finally {
       setPickupBusy(false);
+    }
+  }
+
+  async function onCopyPickupOfferUrl() {
+    if (!pickupOffer) return;
+    try {
+      await copyOfferUrl(globalThis.navigator?.clipboard, pickupOffer.offerUri);
+      setPickupCopyFeedback("Offer URL copied");
+      setPickupError(null);
+    } catch (e) {
+      setPickupCopyFeedback(null);
+      setPickupError(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -646,8 +662,10 @@ export default function App() {
           canCreateOffer={canCreatePickupOffer}
           selectedFilename={pickupUpload?.filename ?? null}
           detectedSubjectId={pickupUpload?.subjectId ?? null}
+          copyFeedback={pickupCopyFeedback}
           onFileChange={onPickupFileChange}
           onCreatePickupOffer={onCreatePickupOffer}
+          onCopyOfferUrl={onCopyPickupOfferUrl}
         />
       )}
     </div>

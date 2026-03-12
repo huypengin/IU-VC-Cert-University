@@ -12,8 +12,10 @@ export interface WalletPickupPanelProps {
   canCreateOffer: boolean;
   selectedFilename: string | null;
   detectedSubjectId: string | null;
+  copyFeedback: string | null;
   onFileChange: ChangeEventHandler<HTMLInputElement>;
   onCreatePickupOffer: () => void;
+  onCopyOfferUrl: () => void;
 }
 
 export function WalletPickupPanel(props: WalletPickupPanelProps) {
@@ -27,8 +29,10 @@ export function WalletPickupPanel(props: WalletPickupPanelProps) {
     canCreateOffer,
     selectedFilename,
     detectedSubjectId,
+    copyFeedback,
     onFileChange,
     onCreatePickupOffer,
+    onCopyOfferUrl,
   } = props;
 
   return (
@@ -65,10 +69,12 @@ export function WalletPickupPanel(props: WalletPickupPanelProps) {
         <section className="card pickup-panel">
           <h2>Offer Ready</h2>
           <div className="pickup-actions">
-            <a href={pickupOffer.offerUri} className="pickup-link-btn">
-              Open Wallet Deep Link
-            </a>
+            <button type="button" className="pickup-link-btn" onClick={onCopyOfferUrl}>
+              Copy Offer URL
+            </button>
           </div>
+          <pre className="pickup-offer-uri">{pickupOffer.offerUri}</pre>
+          {copyFeedback && <div className="result-info">{copyFeedback}</div>}
           <div className="pickup-qr">
             <img src={pickupQrSrc} alt="OID4VCI offer QR code" width={240} height={240} />
           </div>
