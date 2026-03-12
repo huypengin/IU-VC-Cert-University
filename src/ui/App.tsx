@@ -13,8 +13,10 @@ import {
   removeStudentFromIssueBatchState,
   type IssueBatchStudentState,
 } from "./issueBatchState";
-import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
+import { createPickupOfferFromVc, type PickupOfferVm } from "./pickupApi";
+import { parsePickupVcJson, type ParsedPickupVcFile } from "./pickupVcFile";
 import { describeExpiryState } from "./pickupState";
+import { WalletPickupPanel } from "./WalletPickupPanel";
 import React, { useEffect, useMemo, useState } from "react";
 
 function isoNow(): string {
@@ -68,7 +70,7 @@ export default function App() {
   const [revokeResult, setRevokeResult] = useState<RevokeResult | null>(null);
 
   // Wallet pickup state
-  const [pickupSubjectId, setPickupSubjectId] = useState("did:example:student123");
+  const [pickupUpload, setPickupUpload] = useState<ParsedPickupVcFile | null>(null);
   const [pickupBusy, setPickupBusy] = useState(false);
   const [pickupError, setPickupError] = useState<string | null>(null);
   const [pickupOffer, setPickupOffer] = useState<PickupOfferVm | null>(null);
@@ -174,11 +176,40 @@ export default function App() {
     [pickupSecondsLeft],
   );
 
+  const canCreatePickupOffer = useMemo(() => pickupUpload !== null, [pickupUpload]);
+
+  async function onPickupFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setPickupError(null);
+    setPickupOffer(null);
+    setPickupExpiresAtMs(null);
+    setPickupNowMs(Date.now());
+
+    const file = event.target.files?.[0];
+    if (!file) {
+      setPickupUpload(null);
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      setPickupUpload(parsePickupVcJson(text, file.name));
+    } catch (e) {
+      setPickupUpload(null);
+      setPickupError(e instanceof Error ? e.message : String(e));
+    } finally {
+      event.target.value = "";
+    }
+  }
+
   async function onCreatePickupOffer() {
+    if (!pickupUpload) return;
     setPickupError(null);
     setPickupBusy(true);
     try {
-      const nextOffer = await fetchPickupOffer(pickupSubjectId.trim() || undefined);
+      const nextOffer = await createPickupOfferFromVc({
+        vc: pickupUpload.vc,
+        subjectId: pickupUpload.subjectId,
+      });
       setPickupOffer(nextOffer);
       setPickupNowMs(Date.now());
       setPickupExpiresAtMs(Date.now() + nextOffer.expiresInSec * 1000);
@@ -605,53 +636,19 @@ export default function App() {
 
       {/* Wallet Pickup Tab */}
       {activeTab === "pickup" && (
-        <>
-          <div className="grid">
-            <section className="card">
-              <h2>Wallet Pickup</h2>
-              <label>
-                Subject DID (optional override)
-                <input
-                  value={pickupSubjectId}
-                  onChange={(e) => setPickupSubjectId(e.target.value)}
-                  placeholder="did:example:student123"
-                />
-              </label>
-              <div className="pickup-actions">
-                <button type="button" onClick={onCreatePickupOffer} disabled={pickupBusy}>
-                  {pickupBusy ? "Generating..." : "Add to Wallet"}
-                </button>
-                {pickupOffer && (
-                  <button type="button" onClick={onCreatePickupOffer} disabled={pickupBusy}>
-                    Generate new QR
-                  </button>
-                )}
-              </div>
-              {pickupError && <pre className="error">{pickupError}</pre>}
-              <p className="hint">
-                Generate an OID4VCI offer and either open the wallet deep link or scan QR from a phone wallet.
-              </p>
-            </section>
-
-            {pickupOffer && (
-              <section className="card pickup-panel">
-                <h2>Offer Ready</h2>
-                <div className="pickup-actions">
-                  <a href={pickupOffer.offerUri} className="pickup-link-btn">
-                    Open Wallet Deep Link
-                  </a>
-                </div>
-                <div className="pickup-qr">
-                  <img src={pickupQrSrc} alt="OID4VCI offer QR code" width={240} height={240} />
-                </div>
-                <p className={`expiry-${pickupExpiryState}`}>Expires in: {pickupSecondsLeft}s</p>
-                {pickupSecondsLeft === 0 && (
-                  <p className="hint">This offer has expired. Generate a new QR to continue.</p>
-                )}
-              </section>
-            )}
-          </div>
-        </>
+        <WalletPickupPanel
+          pickupBusy={pickupBusy}
+          pickupError={pickupError}
+          pickupOffer={pickupOffer}
+          pickupQrSrc={pickupQrSrc}
+          pickupSecondsLeft={pickupSecondsLeft}
+          pickupExpiryState={pickupExpiryState}
+          canCreateOffer={canCreatePickupOffer}
+          selectedFilename={pickupUpload?.filename ?? null}
+          detectedSubjectId={pickupUpload?.subjectId ?? null}
+          onFileChange={onPickupFileChange}
+          onCreatePickupOffer={onCreatePickupOffer}
+        />
       )}
     </div>
   );

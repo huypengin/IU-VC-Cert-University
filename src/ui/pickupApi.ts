@@ -3,6 +3,11 @@ export interface PickupOfferVm {
   expiresInSec: number;
 }
 
+export interface CreatePickupOfferFromVcInput {
+  vc: Record<string, unknown>;
+  subjectId?: string;
+}
+
 const DEFAULT_OID4VCI_BASE_URL = "http://localhost:8787";
 
 function getOid4vciBaseUrl(): string {
@@ -38,6 +43,24 @@ export async function fetchPickupOffer(subjectId?: string): Promise<PickupOfferV
     headers: {
       "ngrok-skip-browser-warning": "true",
     },
+  });
+  if (!res.ok) throw new Error(`Failed to create offer (${res.status})`);
+  return mapPickupOfferResponse(await res.json());
+}
+
+export async function createPickupOfferFromVc(
+  input: CreatePickupOfferFromVcInput,
+): Promise<PickupOfferVm> {
+  const res = await fetch(buildPickupOfferUrl(), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
+    },
+    body: JSON.stringify({
+      vc: input.vc,
+      ...(input.subjectId ? { subject_id: input.subjectId } : {}),
+    }),
   });
   if (!res.ok) throw new Error(`Failed to create offer (${res.status})`);
   return mapPickupOfferResponse(await res.json());
