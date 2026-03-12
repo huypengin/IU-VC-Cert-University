@@ -24,6 +24,7 @@ export function formatBatchIssuance(result: BatchIssuanceResult) {
     merkleRoot: result.batch.merkleRoot,
     studentCount: result.batch.studentCount,
     componentCount: result.batch.componentCount,
+    sizeLabel: `${result.batch.studentCount} students / ${result.batch.componentCount} components`,
     students: result.students.map((student) => ({
       studentId: student.studentId,
       credentialId: student.credentialId,

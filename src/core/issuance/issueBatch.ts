@@ -21,6 +21,7 @@ type IssueBatchArgs = {
   rpcUrl: string;
   validFrom: string;
   students: BatchStudentIssuanceInput[];
+  devBatchLimits?: boolean;
 };
 
 type IssueBatchDeps = {
@@ -49,9 +50,12 @@ export async function issueBatch(
     vc: SignedVc;
   }>;
 }> {
-  const { chainId, rpcUrl, validFrom, students } = args;
+  const { chainId, rpcUrl, validFrom, students, devBatchLimits } = args;
   if (students.length === 0) {
     throw new Error("issueBatch: students must not be empty");
+  }
+  if (devBatchLimits && (students.length < 3 || students.length > 4)) {
+    throw new Error("issueBatch: dev issue flow supports only 3-4 students");
   }
 
   const deployBatchContractImpl = deps.deployBatchContract ?? deployBatchContract;
@@ -66,6 +70,9 @@ export async function issueBatch(
       components: student.components,
     })),
   });
+  if (devBatchLimits && (batchMerkle.batch.componentCount < 6 || batchMerkle.batch.componentCount > 8)) {
+    throw new Error("issueBatch: dev issue flow supports only 6-8 components");
+  }
 
   const deployed = await deployBatchContractImpl({
     chainId,

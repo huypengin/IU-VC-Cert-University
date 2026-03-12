@@ -138,11 +138,13 @@ advertise `ES256` and emit the same `kid` as the registry DID document.
 
 1) Fill `.env` at repo root.
 2) Run `npm run dev`.
-3) Open the app, fill inputs, click **Issue VC**, then click **Download vc.json**.
+3) Open the app, prepare the small batch, click **Issue Small Batch**, then download each student VC.
 
 Notes:
 - On-chain anchoring is done via an injected **EIP‑1193 provider** (MetaMask). If MetaMask is not available, issuing will fail at the anchoring step.
-- The current React issue tab is still a one-student demo form, but it now routes through the batch issuance core and deploys a fresh contract for that batch.
+- The current React issue tab is a development-sized batch issuer for `3-4` students.
+- Each student contributes exactly `diploma` and `transcript`, so the current dev flow issues `6-8` total components per batch.
+- The issue tab still routes through the batch issuance core and deploys a fresh contract for that batch.
 - The generated VC includes:
   - `@context` with VC v2 + 3 custom contexts
   - `type` = `["VerifiableCredential","VNEduDegreeCredential","IUSmartCertCredential"]`

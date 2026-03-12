@@ -4,6 +4,8 @@
 
 Adjust the issuer architecture from single-credential anchoring to batch anchoring, where one issuance batch of students produces one shared Merkle tree, one shared Merkle root, and one distinct deployed smart contract for that batch.
 
+For the current `main` branch UX, the active implementation target is a development-sized batch flow of `3-4` students, while the underlying architecture remains compatible with later expansion to larger batches.
+
 ## Scenario
 
 The target issuance scenario is:

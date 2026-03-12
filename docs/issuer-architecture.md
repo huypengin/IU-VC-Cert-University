@@ -68,6 +68,7 @@ Important boundary:
 
 - `src/ui/**` should not own core credential logic
 - it delegates issuance work to `src/core/**`, `src/vc/**`, or the OID4VCI API
+- on `main`, the current issue screen is intentionally a small-batch development UX for `3-4` students, not a large-batch production operator console
 
 ### 2. Core Credential Logic Layer
 
