@@ -59,6 +59,7 @@ export function assembleVc(input: AssembleVcInput): UnsignedVc {
     contractAddress: merkle.contractAddress,
     merkleRoot: merkle.merkleRoot,
     anchorTx: merkle.anchorTx,
+    deploymentTx: merkle.deploymentTx,
     leafEncoding: "credentialID||componentType||content",
     merkleTreeSpec: DEFAULT_MERKLE_TREE_SPEC,
     componentsProofs,

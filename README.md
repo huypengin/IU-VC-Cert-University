@@ -3,6 +3,7 @@
 Single-package **Vite + React** issuer and verifier UI that currently implements:
 
 - Reuse IU‑SmartCert logic: component hashing → Merkle tree + per‑component proofs → **anchor Merkle root on-chain**
+- Batch-oriented anchoring in core logic: one issuance batch deploys one fresh contract and anchors one root once
 - Output a **W3C Verifiable Credential (VC) v2 JSON‑LD**
 - Sign with **DataIntegrityProof** using cryptosuite **`eddsa-rdfc-2022`** (**Ed25519**)
 - Download the VC as `vc.json` for wallet import
@@ -112,9 +113,9 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 
 - `CHAIN_ID` (format: `eip155:<number>`, e.g. `eip155:11155111`)
 - `RPC_URL` (reserved for a future non-MetaMask flow; not used by the current UI implementation)
-- `CONTRACT_ADDRESS` (a deployed contract that supports `anchorRoot(bytes32)`, `verify(bytes32[],bytes32)`, `isValid(bytes32)`, and `revokeCertificate(bytes32,string)`)
-  - **Phase 2 Frozen Contract**: `0x0582770bea93B40807D422F22eF8FC4288c81Cb4` (Sepolia)
-- ABI used by the UI: `src/contracts/abi/Root.json`
+- `CONTRACT_ADDRESS` is no longer required for issuance, because the batch issuance flow deploys a fresh contract per batch.
+- Existing verification and revoke flows still read the contract address from the VC receipt.
+- ABI/artifact used by the batch deployment flow: `src/contracts/abi/AnchorRegistryBatch.json`
 
 ### OID4VCI Tunnel (optional)
 
@@ -141,11 +142,12 @@ advertise `ES256` and emit the same `kid` as the registry DID document.
 
 Notes:
 - On-chain anchoring is done via an injected **EIP‑1193 provider** (MetaMask). If MetaMask is not available, issuing will fail at the anchoring step.
+- The current React issue tab is still a one-student demo form, but it now routes through the batch issuance core and deploys a fresh contract for that batch.
 - The generated VC includes:
   - `@context` with VC v2 + 3 custom contexts
   - `type` = `["VerifiableCredential","VNEduDegreeCredential","IUSmartCertCredential"]`
   - `credentialSubject["iu:components"]` with `componentHash`
-  - top-level `"iu:merkleReceipt"` with `merkleRoot`, `anchorTx`, and per-component proofs
+  - top-level `"iu:merkleReceipt"` with `merkleRoot`, `deploymentTx`, `anchorTx`, and per-component proofs
   - top-level `proof` = `DataIntegrityProof` with `cryptosuite: "eddsa-rdfc-2022"`
 
 ## Revoke a VC (UI)

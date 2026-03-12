@@ -48,6 +48,7 @@ contract AnchorRegistry {
      * Called by the Issuer UI during credential issuance.
      */
     function anchorRoot(bytes32 merkleRoot) external onlyOwner {
+        require(MTRoot == bytes32(0), "Root already anchored");
         MTRoot = merkleRoot;
         emit RootAnchored(merkleRoot, msg.sender);
     }
