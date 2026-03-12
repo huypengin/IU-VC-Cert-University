@@ -2,27 +2,20 @@ import { getEnv } from "../env";
 import {
   issueBatch,
   revokeCredentialOnChain,
-  type ComponentInput,
 } from "../core";
 import { buildRevocationRequestFromVc } from "../revocation/request";
 import { verifyVC, type VerificationResult } from "../verifier";
 import { formatBatchIssuance } from "./batchIssuance";
 import { describeChainStatus } from "./chainStatus";
+import {
+  addStudentToIssueBatchState,
+  createDefaultIssueBatchState,
+  removeStudentFromIssueBatchState,
+  type IssueBatchStudentState,
+} from "./issueBatchState";
 import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
 import { describeExpiryState } from "./pickupState";
 import React, { useEffect, useMemo, useState } from "react";
-
-type DegreeInput = { type: string; name: string };
-
-type IssueFormState = {
-  credentialId: string;
-  subjectDid: string;
-  validFrom: string;
-  degree: DegreeInput;
-  chainId: string;
-  rpcUrl: string;
-  components: ComponentInput[];
-};
 
 function isoNow(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
@@ -42,38 +35,24 @@ function downloadJson(filename: string, data: unknown) {
 
 type RevokeResult = Awaited<ReturnType<typeof revokeCredentialOnChain>>;
 type BatchIssuanceSummary = ReturnType<typeof formatBatchIssuance>;
+type IssuedStudentVm = {
+  studentId: string;
+  credentialId: string;
+  vc: any;
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<"issue" | "verify" | "pickup">("issue");
 
-  // Issue form state
-  const [form, setForm] = useState<IssueFormState>({
-    credentialId: "urn:uuid:example-degree-2025",
-    subjectDid: "did:example:student123",
-    validFrom: isoNow(),
-    degree: { type: "BachelorDegree", name: "BSc in Computer Science" },
-    chainId: getEnv("CHAIN_ID"),
-    rpcUrl: "",
-    components: [
-      {
-        name: "diploma",
-        mandatory: true,
-        componentType: "degreeCertificate",
-        content: "demo-content:diploma",
-      },
-      {
-        name: "transcript",
-        mandatory: false,
-        componentType: "academicTranscript",
-        content: "demo-content:transcript",
-      },
-    ],
-  });
+  const [validFrom, setValidFrom] = useState(isoNow());
+  const [issueChainId, setIssueChainId] = useState(getEnv("CHAIN_ID"));
+  const [issueRpcUrl, setIssueRpcUrl] = useState("");
+  const [issueBatchState, setIssueBatchState] = useState(createDefaultIssueBatchState());
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [vc, setVc] = useState<any>(null);
   const [issuedBatch, setIssuedBatch] = useState<BatchIssuanceSummary | null>(null);
+  const [issuedStudents, setIssuedStudents] = useState<IssuedStudentVm[]>([]);
 
   // Verifier state
   const [vcInput, setVcInput] = useState("");
@@ -98,37 +77,37 @@ export default function App() {
 
   const canIssue = useMemo(() => {
     return (
-      form.credentialId &&
-      form.subjectDid &&
-      form.validFrom &&
-      form.chainId &&
-      form.components.length > 0
+      validFrom &&
+      issueChainId &&
+      issueBatchState.students.length >= 3 &&
+      issueBatchState.students.length <= 4
     );
-  }, [form]);
+  }, [issueBatchState.students.length, issueChainId, validFrom]);
+
+  function updateStudent(studentIndex: number, updater: (student: IssueBatchStudentState) => IssueBatchStudentState) {
+    setIssueBatchState((state) => ({
+      students: state.students.map((student, index) =>
+        index === studentIndex ? updater(student) : student,
+      ),
+    }));
+  }
 
   async function onIssue() {
     setError(null);
-    setVc(null);
     setIssuedBatch(null);
+    setIssuedStudents([]);
     setBusy(true);
     try {
       const result = await issueBatch({
-        chainId: form.chainId,
-        rpcUrl: form.rpcUrl,
-        validFrom: form.validFrom,
-        students: [
-          {
-            studentId: form.subjectDid,
-            subjectDid: form.subjectDid,
-            credentialId: form.credentialId,
-            degree: form.degree,
-            components: form.components,
-          },
-        ],
+        chainId: issueChainId,
+        rpcUrl: issueRpcUrl,
+        validFrom,
+        students: issueBatchState.students,
+        devBatchLimits: true,
       });
 
       setIssuedBatch(formatBatchIssuance(result));
-      setVc(result.students[0]?.vc ?? null);
+      setIssuedStudents(result.students);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -246,166 +225,135 @@ export default function App() {
         <>
           <div className="grid">
             <section className="card">
-              <h2>Credential</h2>
-              <label>
-                Credential ID
-                <input
-                  value={form.credentialId}
-                  onChange={(e) => setForm((s) => ({ ...s, credentialId: e.target.value }))}
-                />
-              </label>
-              <label>
-                Subject DID
-                <input
-                  value={form.subjectDid}
-                  onChange={(e) => setForm((s) => ({ ...s, subjectDid: e.target.value }))}
-                />
-              </label>
+              <h2>Batch Settings</h2>
               <label>
                 validFrom (ISO)
                 <input
-                  value={form.validFrom}
-                  onChange={(e) => setForm((s) => ({ ...s, validFrom: e.target.value }))}
+                  value={validFrom}
+                  onChange={(e) => setValidFrom(e.target.value)}
                 />
               </label>
-
-              <h3>Degree</h3>
-              <div className="row">
-                <label>
-                  Type
-                  <input
-                    value={form.degree.type}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, degree: { ...s.degree, type: e.target.value } }))
-                    }
-                  />
-                </label>
-                <label>
-                  Name
-                  <input
-                    value={form.degree.name}
-                    onChange={(e) =>
-                      setForm((s) => ({ ...s, degree: { ...s.degree, name: e.target.value } }))
-                    }
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="card">
-              <h2>Anchoring</h2>
               <label>
                 chainId (eip155:...)
                 <input
-                  value={form.chainId}
-                  onChange={(e) => setForm((s) => ({ ...s, chainId: e.target.value }))}
+                  value={issueChainId}
+                  onChange={(e) => setIssueChainId(e.target.value)}
                 />
               </label>
               <label>
                 rpcUrl (only needed if not using MetaMask)
                 <input
-                  value={form.rpcUrl}
-                  onChange={(e) => setForm((s) => ({ ...s, rpcUrl: e.target.value }))}
+                  value={issueRpcUrl}
+                  onChange={(e) => setIssueRpcUrl(e.target.value)}
                   placeholder="https://..."
                 />
               </label>
               <p className="hint">
-                Each issuance batch now deploys a fresh contract and anchors one root once. The issue
-                tab still uses a single-student form, but it routes through the batch issuance flow.
+                Development mode issues a small batch of 3-4 students. Each student contributes
+                `diploma` and `transcript`, so the batch has 6-8 components total.
               </p>
             </section>
 
             <section className="card span2">
-              <h2>Components</h2>
+              <h2>Students</h2>
               <div className="actions">
                 <button
                   type="button"
-                  onClick={() =>
-                    setForm((s) => ({
-                      ...s,
-                      components: [
-                        ...s.components,
-                        { name: "", mandatory: false, componentType: "", content: "" },
-                      ],
-                    }))
-                  }
+                  onClick={() => setIssueBatchState((state) => addStudentToIssueBatchState(state))}
+                  disabled={issueBatchState.students.length >= 4}
                 >
-                  Add component
+                  Add student
                 </button>
               </div>
 
               <div className="components">
-                {form.components.map((c, i) => (
-                  <div key={i} className="component">
+                {issueBatchState.students.map((student, studentIndex) => (
+                  <div key={student.studentId} className="component">
+                    <h3>Student {studentIndex + 1}</h3>
                     <div className="row">
                       <label>
-                        Name
+                        Credential ID
                         <input
-                          value={c.name}
+                          value={student.credentialId}
                           onChange={(e) =>
-                            setForm((s) => ({
-                              ...s,
-                              components: s.components.map((x, idx) =>
-                                idx === i ? { ...x, name: e.target.value } : x,
-                              ),
+                            updateStudent(studentIndex, (current) => ({
+                              ...current,
+                              credentialId: e.target.value,
                             }))
                           }
                         />
                       </label>
                       <label>
-                        componentType
+                        Subject DID
                         <input
-                          value={c.componentType}
+                          value={student.subjectDid}
                           onChange={(e) =>
-                            setForm((s) => ({
-                              ...s,
-                              components: s.components.map((x, idx) =>
-                                idx === i ? { ...x, componentType: e.target.value } : x,
-                              ),
+                            updateStudent(studentIndex, (current) => ({
+                              ...current,
+                              studentId: e.target.value,
+                              subjectDid: e.target.value,
                             }))
                           }
                         />
-                      </label>
-                      <label className="checkbox">
-                        <input
-                          type="checkbox"
-                          checked={c.mandatory}
-                          onChange={(e) =>
-                            setForm((s) => ({
-                              ...s,
-                              components: s.components.map((x, idx) =>
-                                idx === i ? { ...x, mandatory: e.target.checked } : x,
-                              ),
-                            }))
-                          }
-                        />
-                        mandatory
                       </label>
                       <button
                         type="button"
                         className="danger"
                         onClick={() =>
-                          setForm((s) => ({ ...s, components: s.components.filter((_, idx) => idx !== i) }))
+                          setIssueBatchState((state) => removeStudentFromIssueBatchState(state, studentIndex))
                         }
+                        disabled={issueBatchState.students.length <= 3}
                       >
                         Remove
                       </button>
                     </div>
-                    <label>
-                      content (demo)
-                      <textarea
-                        value={c.content}
-                        onChange={(e) =>
-                          setForm((s) => ({
-                            ...s,
-                            components: s.components.map((x, idx) =>
-                              idx === i ? { ...x, content: e.target.value } : x,
-                            ),
-                          }))
-                        }
-                        rows={2}
-                      />
-                    </label>
+
+                    <div className="row">
+                      <label>
+                        Degree Type
+                        <input
+                          value={student.degree.type}
+                          onChange={(e) =>
+                            updateStudent(studentIndex, (current) => ({
+                              ...current,
+                              degree: { ...current.degree, type: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                      <label>
+                        Degree Name
+                        <input
+                          value={student.degree.name}
+                          onChange={(e) =>
+                            updateStudent(studentIndex, (current) => ({
+                              ...current,
+                              degree: { ...current.degree, name: e.target.value },
+                            }))
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {student.components.map((component, componentIndex) => (
+                      <label key={`${student.studentId}-${component.name}`}>
+                        {component.name} content
+                        <textarea
+                          value={component.content}
+                          onChange={(e) =>
+                            updateStudent(studentIndex, (current) => ({
+                              ...current,
+                              components: current.components.map((candidate, candidateIndex) =>
+                                candidateIndex === componentIndex
+                                  ? { ...candidate, content: e.target.value }
+                                  : candidate,
+                              ),
+                            }))
+                          }
+                          rows={2}
+                        />
+                      </label>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -415,13 +363,8 @@ export default function App() {
           <section className="card">
             <div className="actions">
               <button type="button" onClick={onIssue} disabled={!canIssue || busy}>
-                {busy ? "Issuing..." : "Issue Batch VC"}
+                {busy ? "Issuing..." : "Issue Small Batch"}
               </button>
-              {vc && (
-                <button type="button" onClick={() => downloadJson("vc.json", vc)}>
-                  Download vc.json
-                </button>
-              )}
             </div>
             {error && <pre className="error">{error}</pre>}
           </section>
@@ -429,6 +372,7 @@ export default function App() {
           {issuedBatch && (
             <section className="card">
               <h2>Batch Summary</h2>
+              <div className="result-info">{issuedBatch.sizeLabel}</div>
               <div className="result-info">Students: {issuedBatch.studentCount}</div>
               <div className="result-info">Components: {issuedBatch.componentCount}</div>
               <div className="result-info">Chain: {issuedBatch.chainId}</div>
@@ -439,12 +383,20 @@ export default function App() {
             </section>
           )}
 
-          {vc && (
-            <section className="card">
-              <h2>Output</h2>
-              <pre className="code">{JSON.stringify(vc, null, 2)}</pre>
+          {issuedStudents.map((student) => (
+            <section key={student.studentId} className="card">
+              <div className="actions">
+                <h2>{student.studentId}</h2>
+                <button
+                  type="button"
+                  onClick={() => downloadJson(`${student.studentId}.vc.json`, student.vc)}
+                >
+                  Download {student.studentId}.vc.json
+                </button>
+              </div>
+              <pre className="code">{JSON.stringify(student.vc, null, 2)}</pre>
             </section>
-          )}
+          ))}
         </>
       )}
 
