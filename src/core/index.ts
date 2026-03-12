@@ -19,4 +19,5 @@ export { hashComponents } from "./hashing/hashComponents";
 export { buildMerkle } from "./merkle/merkle";
 export { buildBatchMerkle } from "./issuance/batch";
 export { anchorRoot } from "./chain/registry";
+export { anchorBatchRootOnce, deployBatchContract } from "./chain/deployBatchContract";
 export { revokeCredentialOnChain } from "./chain/revocation";
