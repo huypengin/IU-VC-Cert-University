@@ -40,6 +40,7 @@ export type IUSmartCertMerkleReceipt = {
   contractAddress: string;
   merkleRoot: string;
   anchorTx: string;
+  deploymentTx?: string;
   /** @deprecated Use merkleTreeSpec.leafHashAlg instead */
   hashAlg?: "sha256";
   leafEncoding: "credentialID||componentType||content";
@@ -114,7 +115,7 @@ export type AssembleVcInput = {
     contractAddress: string;
     merkleRoot: string;
     anchorTx: string;
+    deploymentTx?: string;
     proofs: Record<string, string[]>;
   };
 };
-
