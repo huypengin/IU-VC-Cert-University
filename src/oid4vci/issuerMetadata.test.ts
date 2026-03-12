@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getIssuerMetadata } from "./oid4vci.controller.js";
+import { getIssuerMetadata, getIssuerMetadataDraft11 } from "./oid4vci.controller.js";
 import { initKeys } from "./keys.js";
 
 const TEST_ISSUER_DID
@@ -43,6 +43,34 @@ test("issuer metadata exposes deducible credential types for wallet", () => {
   assert.ok(cfg.credential_definition.type.includes("IUSmartCertCredential"));
   assert.ok(Array.isArray(cfg.types));
   assert.ok(cfg.types.includes("VerifiableCredential"));
+  assert.equal("credentials_supported" in metadata, false);
+});
+
+test("legacy issuer metadata exposes draft11 credentials_supported", () => {
+  let payload: unknown;
+  const res = {
+    json(data: unknown) {
+      payload = data;
+      return this;
+    },
+  } as any;
+
+  getIssuerMetadataDraft11({} as any, res);
+
+  const metadata = payload as {
+    credentials_supported: Array<{
+      format: string;
+      credential_definition: { type: string[] };
+    }>;
+  };
+
+  assert.ok(Array.isArray(metadata.credentials_supported));
+  assert.equal(metadata.credentials_supported[0]?.format, "jwt_vc_json");
+  assert.ok(
+    metadata.credentials_supported[0]?.credential_definition.type.includes(
+      "IUSmartCertCredential",
+    ),
+  );
 });
 
 test("issuer metadata advertises ES256 when registry ES256 key is configured", async () => {

@@ -39,6 +39,7 @@ async function main(): Promise<void> {
     console.log(`   BASE_URL = ${BASE_URL}`);
     console.log(`\n📋 Endpoints:`);
     console.log(`   GET  ${BASE_URL}/.well-known/openid-credential-issuer`);
+    console.log(`   GET  ${BASE_URL}/.well-known/openid-credential-issuer-draft11`);
     console.log(`   GET  ${BASE_URL}/.well-known/jwks.json`);
     console.log(`   GET  ${BASE_URL}/oid4vci/credential-offer`);
     console.log(`   POST ${BASE_URL}/oid4vci/token`);

@@ -15,9 +15,7 @@ import {
 } from "./oid4vci.service.js";
 import { getPublicJWKS, getSigningAlg } from "./keys.js";
 
-// ─── GET /.well-known/openid-credential-issuer ──────────────────────────────
-
-export function getIssuerMetadata(_req: Request, res: Response): void {
+function buildIssuerMetadataBase() {
   const port = Number(process.env.OID4VCI_PORT) || 8787;
   const baseUrl = process.env.BASE_URL ?? `http://localhost:${port}`;
 
@@ -27,27 +25,33 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
     "IUSmartCertCredential",
   ];
 
-  const signingAlg = getSigningAlg();
+  return {
+    baseUrl,
+    vcTypes,
+    signingAlg: getSigningAlg(),
+    baseMetadata: {
+      credential_issuer: baseUrl,
+      credential_endpoint: `${baseUrl}/oid4vci/credential`,
+      token_endpoint: `${baseUrl}/oid4vci/token`,
+      nonce_endpoint: `${baseUrl}/oid4vci/nonce`,
+      jwks_uri: `${baseUrl}/.well-known/jwks.json`,
+    },
+  };
+}
 
-  res.json({
-    credential_issuer: baseUrl,
-    credential_endpoint: `${baseUrl}/oid4vci/credential`,
-    token_endpoint: `${baseUrl}/oid4vci/token`,
-    nonce_endpoint: `${baseUrl}/oid4vci/nonce`,
-    jwks_uri: `${baseUrl}/.well-known/jwks.json`,
+function buildIssuerMetadataDraft13() {
+  const { vcTypes, signingAlg, baseMetadata } = buildIssuerMetadataBase();
 
-    // OID4VCI 1.0 – required by Sphereon and most modern wallets
+  return {
+    ...baseMetadata,
     credential_configurations_supported: {
       IU_Degree_JWTVC: {
         format: "jwt_vc_json",
         scope: "IU_Degree_JWTVC",
-
-        // ← THIS was the missing piece causing "cannot deduce types"
         credential_definition: {
           type: vcTypes,
         },
         types: vcTypes,
-
         cryptographic_binding_methods_supported: ["did:web", "did:jwk", "did:key", "did:example"],
         credential_signing_alg_values_supported: [signingAlg],
         display: [
@@ -60,8 +64,14 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
         ],
       },
     },
+  };
+}
 
-    // Legacy field – some older wallets/drafts look here instead
+function buildIssuerMetadataDraft11() {
+  const { vcTypes, baseMetadata } = buildIssuerMetadataBase();
+
+  return {
+    ...baseMetadata,
     credentials_supported: [
       {
         format: "jwt_vc_json",
@@ -71,7 +81,17 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
         },
       },
     ],
-  });
+  };
+}
+
+// ─── GET /.well-known/openid-credential-issuer ──────────────────────────────
+
+export function getIssuerMetadata(_req: Request, res: Response): void {
+  res.json(buildIssuerMetadataDraft13());
+}
+
+export function getIssuerMetadataDraft11(_req: Request, res: Response): void {
+  res.json(buildIssuerMetadataDraft11());
 }
 
 // ─── GET /.well-known/jwks.json ─────────────────────────────────────────────

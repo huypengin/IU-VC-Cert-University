@@ -5,6 +5,7 @@
 import { Router } from "express";
 import {
   getIssuerMetadata,
+  getIssuerMetadataDraft11,
   getJwks,
   getCredentialOffer,
   getPickupOffer,
@@ -19,6 +20,7 @@ const router = Router();
 
 // Well-known endpoints
 router.get("/.well-known/openid-credential-issuer", getIssuerMetadata);
+router.get("/.well-known/openid-credential-issuer-draft11", getIssuerMetadataDraft11);
 router.get("/.well-known/jwks.json", getJwks);
 
 // OID4VCI flow endpoints
