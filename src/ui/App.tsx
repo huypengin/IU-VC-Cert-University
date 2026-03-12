@@ -1,16 +1,12 @@
 import { getEnv } from "../env";
 import {
-  HASH_ALG,
-  LEAF_ENCODING,
-  anchorRoot,
-  buildMerkle,
-  hashComponents,
+  issueBatch,
   revokeCredentialOnChain,
   type ComponentInput,
 } from "../core";
 import { buildRevocationRequestFromVc } from "../revocation/request";
-import { assembleVc, signVc } from "../vc";
 import { verifyVC, type VerificationResult } from "../verifier";
+import { formatBatchIssuance } from "./batchIssuance";
 import { describeChainStatus } from "./chainStatus";
 import { fetchPickupOffer, type PickupOfferVm } from "./pickupApi";
 import { describeExpiryState } from "./pickupState";
@@ -25,7 +21,6 @@ type IssueFormState = {
   degree: DegreeInput;
   chainId: string;
   rpcUrl: string;
-  contractAddress: string;
   components: ComponentInput[];
 };
 
@@ -46,6 +41,7 @@ function downloadJson(filename: string, data: unknown) {
 }
 
 type RevokeResult = Awaited<ReturnType<typeof revokeCredentialOnChain>>;
+type BatchIssuanceSummary = ReturnType<typeof formatBatchIssuance>;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<"issue" | "verify" | "pickup">("issue");
@@ -58,7 +54,6 @@ export default function App() {
     degree: { type: "BachelorDegree", name: "BSc in Computer Science" },
     chainId: getEnv("CHAIN_ID"),
     rpcUrl: "",
-    contractAddress: getEnv("CONTRACT_ADDRESS"),
     components: [
       {
         name: "diploma",
@@ -78,6 +73,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vc, setVc] = useState<any>(null);
+  const [issuedBatch, setIssuedBatch] = useState<BatchIssuanceSummary | null>(null);
 
   // Verifier state
   const [vcInput, setVcInput] = useState("");
@@ -106,7 +102,6 @@ export default function App() {
       form.subjectDid &&
       form.validFrom &&
       form.chainId &&
-      form.contractAddress &&
       form.components.length > 0
     );
   }, [form]);
@@ -114,44 +109,26 @@ export default function App() {
   async function onIssue() {
     setError(null);
     setVc(null);
+    setIssuedBatch(null);
     setBusy(true);
     try {
-      const hashedComponents = hashComponents({
-        credentialId: form.credentialId,
-        components: form.components,
-        hashAlg: HASH_ALG,
-        leafEncoding: LEAF_ENCODING,
-      });
-
-      const { merkleRoot, proofs } = buildMerkle({
-        leaves: hashedComponents.map((c) => ({ name: c.name, hash: c.componentHash })),
-      });
-
-      const anchored = await anchorRoot({
+      const result = await issueBatch({
         chainId: form.chainId,
         rpcUrl: form.rpcUrl,
-        contractAddress: form.contractAddress,
-        merkleRoot,
-      });
-
-      const unsigned = assembleVc({
-        credentialId: form.credentialId,
         validFrom: form.validFrom,
-        subjectDid: form.subjectDid,
-        degree: form.degree,
-        components: hashedComponents,
-        merkle: {
-          chainId: anchored.chainId,
-          contractAddress: anchored.contractAddress,
-          merkleRoot,
-          anchorTx: anchored.anchorTx,
-          proofs,
-        },
+        students: [
+          {
+            studentId: form.subjectDid,
+            subjectDid: form.subjectDid,
+            credentialId: form.credentialId,
+            degree: form.degree,
+            components: form.components,
+          },
+        ],
       });
 
-      const signed = await signVc(unsigned);
-
-      setVc(signed);
+      setIssuedBatch(formatBatchIssuance(result));
+      setVc(result.students[0]?.vc ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -332,17 +309,9 @@ export default function App() {
                   placeholder="https://..."
                 />
               </label>
-              <label>
-                contractAddress
-                <input
-                  value={form.contractAddress}
-                  onChange={(e) => setForm((s) => ({ ...s, contractAddress: e.target.value }))}
-                  placeholder="0x..."
-                />
-              </label>
               <p className="hint">
-                UI anchoring expects an injected EIP-1193 provider (MetaMask) unless you wire a private
-                key based flow.
+                Each issuance batch now deploys a fresh contract and anchors one root once. The issue
+                tab still uses a single-student form, but it routes through the batch issuance flow.
               </p>
             </section>
 
@@ -446,7 +415,7 @@ export default function App() {
           <section className="card">
             <div className="actions">
               <button type="button" onClick={onIssue} disabled={!canIssue || busy}>
-                {busy ? "Issuing..." : "Issue VC"}
+                {busy ? "Issuing..." : "Issue Batch VC"}
               </button>
               {vc && (
                 <button type="button" onClick={() => downloadJson("vc.json", vc)}>
@@ -456,6 +425,19 @@ export default function App() {
             </div>
             {error && <pre className="error">{error}</pre>}
           </section>
+
+          {issuedBatch && (
+            <section className="card">
+              <h2>Batch Summary</h2>
+              <div className="result-info">Students: {issuedBatch.studentCount}</div>
+              <div className="result-info">Components: {issuedBatch.componentCount}</div>
+              <div className="result-info">Chain: {issuedBatch.chainId}</div>
+              <div className="result-info">Contract: {issuedBatch.contractAddress}</div>
+              <div className="result-info">Deployment Tx: {issuedBatch.deploymentTx}</div>
+              <div className="result-info">Anchor Tx: {issuedBatch.anchorTx}</div>
+              <div className="result-info">Merkle Root: {issuedBatch.merkleRoot}</div>
+            </section>
+          )}
 
           {vc && (
             <section className="card">

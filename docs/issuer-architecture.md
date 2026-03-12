@@ -7,7 +7,7 @@ This document describes the architecture of the issuer repository, with emphasis
 The repository contains three main flows that share project context but serve different consumers:
 
 - UI issuance path:
-  builds a VC JSON-LD document, signs it with Ed25519 Data Integrity, and lets the user download `vc.json`
+  builds batch-oriented Merkle data, deploys a fresh contract per batch, signs a VC JSON-LD document, and lets the user download `vc.json`
 - UI verification and revocation path:
   verifies anchored VCs against the smart contract and lets the owner wallet revoke them on-chain
 - Wallet pickup path:
@@ -79,6 +79,8 @@ Responsibilities:
 
 - hashing
 - Merkle tree construction
+- batch orchestration
+- contract deployment + one-time anchoring
 - anchoring support
 - MetaMask transaction helpers for smart-contract interactions
 - data preparation shared by issuance behavior
@@ -210,7 +212,7 @@ This is the most important architectural split in the repository.
 
 | Flow | Entry point | Output | Signing format | Key material |
 | --- | --- | --- | --- | --- |
-| UI issuance | React UI -> `src/vc/**` | `vc.json` | Data Integrity / Ed25519 | `ISSUER_ED25519_PRIVATE_KEY` |
+| UI issuance | React UI -> `src/core/**` -> `src/vc/**` | `vc.json` | Data Integrity / Ed25519 | `ISSUER_ED25519_PRIVATE_KEY` |
 | UI verify + revoke | React UI -> `src/verifier/**`, `src/revocation/**`, `src/core/chain/**` | verification result + revoke tx | smart-contract reads/writes | MetaMask owner wallet |
 | Wallet pickup | Wallet -> `src/oid4vci/**` | JWT VC | JWT / ES256 | `OID4VCI_PRIVATE_JWK` |
 
