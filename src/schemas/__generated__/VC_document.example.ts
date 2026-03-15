@@ -7,7 +7,13 @@ export const SAMPLE_IUSMARTCERT_VC_2: IUSmartCertUniversityCredential = {
     "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-smartcert-v1.jsonld",
     "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/merkle-receipt-v1.jsonld"
   ],
-  type: ["VerifiableCredential", "VNEduDegreeCredential", "IUSmartCertCredential"],
+  type: [
+    "VerifiableCredential",
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
+    "VNEduDegreeCredential",
+    "IUSmartCertCredential",
+  ],
   id: "urn:uuid:example-degree-2025",
 
   issuer: "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:iu",

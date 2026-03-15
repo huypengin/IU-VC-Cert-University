@@ -21,6 +21,8 @@ function buildIssuerMetadataBase() {
 
   const vcTypes = [
     "VerifiableCredential",
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
     "VNEduDegreeCredential",
     "IUSmartCertCredential",
   ];

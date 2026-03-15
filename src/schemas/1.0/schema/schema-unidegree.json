@@ -1,6 +1,11 @@
 {
   "@context": ["https://www.w3.org/ns/credentials/v2"],
-  "type": ["VerifiableCredential","UniversityDegreeCredential"],
+  "type": [
+    "VerifiableCredential",
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
+    "VNEduDegreeCredential"
+  ],
   "id": "urn:uuid:...",
   "issuer": "did:web:uni.example.edu",
   "validFrom": "2025-06-01T00:00:00Z",

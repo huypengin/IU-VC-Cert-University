@@ -18,7 +18,13 @@ test("createPickupOfferResponseFromVc stores the uploaded VC against the pre-aut
     vc: {
       id: "urn:uuid:test-vc",
       credentialSubject: { id: "did:example:student123" },
-      type: ["VerifiableCredential", "VNEduDegreeCredential"],
+      type: [
+        "VerifiableCredential",
+        "UniversityDegree",
+        "EducationalOccupationalCredential",
+        "VNEduDegreeCredential",
+        "IUSmartCertCredential",
+      ],
     },
   });
 
@@ -47,7 +53,13 @@ test("buildJwtVc uses the uploaded VC linked to the access token instead of proc
     subjectId: "did:example:student123",
     vc: {
       id: "urn:uuid:uploaded-vc",
-      type: ["VerifiableCredential", "VNEduDegreeCredential"],
+      type: [
+        "VerifiableCredential",
+        "UniversityDegree",
+        "EducationalOccupationalCredential",
+        "VNEduDegreeCredential",
+        "IUSmartCertCredential",
+      ],
       credentialSubject: { id: "did:example:student123", degree: { name: "BSc" } },
     },
   });

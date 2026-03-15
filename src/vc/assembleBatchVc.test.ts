@@ -45,6 +45,13 @@ test("assembleVc keeps shared batch metadata while embedding one student's proof
   } as any);
 
   const receipt = vc["iu:merkleReceipt"];
+  assert.deepEqual(vc.type, [
+    "VerifiableCredential",
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
+    "VNEduDegreeCredential",
+    "IUSmartCertCredential",
+  ]);
   assert.equal(receipt?.merkleRoot, `0x${"aa".repeat(32)}`);
   assert.equal(receipt?.componentsProofs.length, 2);
   assert.equal(receipt?.deploymentTx, `0x${"cc".repeat(32)}`);

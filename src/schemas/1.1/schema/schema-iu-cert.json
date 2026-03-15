@@ -6,7 +6,10 @@
   ],
   "type": [
     "VerifiableCredential",
-    "IUSmartCertUniversityCredential"
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
+    "VNEduDegreeCredential",
+    "IUSmartCertCredential"
   ],
   "id": "urn:uuid:...",
 

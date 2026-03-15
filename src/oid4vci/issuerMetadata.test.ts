@@ -3,6 +3,14 @@ import assert from "node:assert/strict";
 import { getIssuerMetadata, getIssuerMetadataDraft11 } from "./oid4vci.controller.js";
 import { initKeys } from "./keys.js";
 
+const EXPECTED_SMARTCERT_TYPES = [
+  "VerifiableCredential",
+  "UniversityDegree",
+  "EducationalOccupationalCredential",
+  "VNEduDegreeCredential",
+  "IUSmartCertCredential",
+];
+
 const TEST_ISSUER_DID
   = "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:principle";
 const TEST_ES256_JWK = JSON.stringify({
@@ -39,10 +47,9 @@ test("issuer metadata exposes deducible credential types for wallet", () => {
   );
   assert.equal(cfg.format, "jwt_vc_json");
   assert.ok(Array.isArray(cfg.credential_definition?.type));
-  assert.ok(cfg.credential_definition.type.includes("VerifiableCredential"));
-  assert.ok(cfg.credential_definition.type.includes("IUSmartCertCredential"));
+  assert.deepEqual(cfg.credential_definition.type, EXPECTED_SMARTCERT_TYPES);
   assert.ok(Array.isArray(cfg.types));
-  assert.ok(cfg.types.includes("VerifiableCredential"));
+  assert.deepEqual(cfg.types, EXPECTED_SMARTCERT_TYPES);
   assert.equal("credentials_supported" in metadata, false);
 });
 
@@ -60,17 +67,18 @@ test("legacy issuer metadata exposes draft11 credentials_supported", () => {
   const metadata = payload as {
     credentials_supported: Array<{
       format: string;
+      types: string[];
       credential_definition: { type: string[] };
     }>;
   };
 
   assert.ok(Array.isArray(metadata.credentials_supported));
   assert.equal(metadata.credentials_supported[0]?.format, "jwt_vc_json");
-  assert.ok(
-    metadata.credentials_supported[0]?.credential_definition.type.includes(
-      "IUSmartCertCredential",
-    ),
+  assert.deepEqual(
+    metadata.credentials_supported[0]?.credential_definition.type,
+    EXPECTED_SMARTCERT_TYPES,
   );
+  assert.deepEqual(metadata.credentials_supported[0]?.types, EXPECTED_SMARTCERT_TYPES);
 });
 
 test("issuer metadata advertises ES256 when registry ES256 key is configured", async () => {

@@ -34,7 +34,13 @@ test("buildJwtVc signs with ES256 and registry verification method kid", async (
       subjectId: "did:example:student123",
       uploadedVc: {
         id: "urn:uuid:test-vc",
-        type: ["VerifiableCredential", "VNEduDegreeCredential"],
+        type: [
+          "VerifiableCredential",
+          "UniversityDegree",
+          "EducationalOccupationalCredential",
+          "VNEduDegreeCredential",
+          "IUSmartCertCredential",
+        ],
         credentialSubject: { id: "did:example:student123" },
       },
     } as any);

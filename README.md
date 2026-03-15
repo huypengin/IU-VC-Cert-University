@@ -147,7 +147,7 @@ Notes:
 - The issue tab still routes through the batch issuance core and deploys a fresh contract for that batch.
 - The generated VC includes:
   - `@context` with VC v2 + 3 custom contexts
-  - `type` = `["VerifiableCredential","VNEduDegreeCredential","IUSmartCertCredential"]`
+  - `type` = `["VerifiableCredential","UniversityDegree","EducationalOccupationalCredential","VNEduDegreeCredential","IUSmartCertCredential"]`
   - `credentialSubject["iu:components"]` with `componentHash`
   - top-level `"iu:merkleReceipt"` with `merkleRoot`, `deploymentTx`, `anchorTx`, and per-component proofs
   - top-level `proof` = `DataIntegrityProof` with `cryptosuite: "eddsa-rdfc-2022"`

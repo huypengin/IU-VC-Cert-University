@@ -6,7 +6,12 @@ export const SAMPLE_IUSMARTCERT_DOCUMENT: IUSmartCertDocument = {
     "https://www.w3.org/ns/credentials/v2",
     "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-edu-degree-v1.jsonld"
   ],
-  type: ["VerifiableCredential", "VNEduDegreeCredential"],
+  type: [
+    "VerifiableCredential",
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
+    "VNEduDegreeCredential",
+  ],
   id: "urn:uuid:example-degree-2025",
   issuer: "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:iu",
   validFrom: "2025-06-01T00:00:00Z",
