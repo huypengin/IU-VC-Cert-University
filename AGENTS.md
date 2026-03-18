@@ -6,6 +6,13 @@ This repository is the main IU SmartCert VC workspace. It owns the browser issue
 
 Treat this repo as the coordinator for work done here. If a task depends on registry hosting, deployed infrastructure, smart-contract release automation, or another checkout, do not invent changes outside this repository. State the dependency and hand off the follow-up to the owning repo.
 
+## Cross-Repo Map
+
+- `IU-VC-registry`: writable source of truth for registry contexts, credential schemas, DID docs, public registry assets, and the sync workflow that mirrors canonical contract files into this repo.
+- `waltid-identity`: read-only reference source for wallet, verifier, OID4VCI, and OID4VP behavior. Use it to confirm protocol expectations, not as an IU-owned implementation target.
+- If a VC schema or registry contract changes, start in `IU-VC-registry`, run its sync workflow, then adapt this repo only where downstream copies, tests, docs, or UI behavior still need alignment.
+- Do not make the same schema change independently in both repos.
+
 ## Active Code Map
 
 - `src/ui/**`: React UI for issuance, verification, and wallet pickup.
@@ -23,6 +30,7 @@ Treat this repo as the coordinator for work done here. If a task depends on regi
 - Do not treat `dist/`, `VC.result/`, or `.env` as sources of truth.
 - `.env` values are bundled into the browser build. Never commit secrets or real production keys.
 - This repo is intentionally a single-package app. Avoid monorepo assumptions.
+- Do not edit mirrored registry contract files here first when the canonical change belongs in `IU-VC-registry`.
 
 ## Commands
 
@@ -60,6 +68,11 @@ Treat this repo as the coordinator for work done here. If a task depends on regi
   - `src/core/**`, `src/vc/**`, `src/verifier/**`, `src/revocation/**`
   - docs-only edits under `docs/**`
 - Do not run parallel workers on the same feature slice or the same files.
+- For cross-repo work:
+  - route registry and schema authority questions to `IU-VC-registry`
+  - route protocol and interoperability questions to `waltid-identity`
+  - keep this repo as the coordinator and downstream adaptation target
+- Each repository should carry its own `AGENTS.md` and project config; this repo cannot centrally override another checkout.
 - If the task really belongs in another repository, stop at the handoff boundary. Each repository should carry its own `AGENTS.md` and `.codex/agents/`; this repo cannot configure another checkout.
 
 ## Project Subagents
@@ -69,6 +82,8 @@ This repo includes project-scoped subagents under `.codex/agents/` for:
 - code and path mapping
 - OID4VCI-specific review
 - VC, chain, and verifier invariant review
+- registry source-of-truth and sync analysis
+- walt.id protocol reference research
 - small, scoped implementation once ownership is clear
 
 Use them as helpers, not as a substitute for parent-agent verification.
