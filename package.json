@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "echo \"(no lint configured)\"",
-    "oid4vci": "tsx src/oid4vci/server.ts",
+    "oid4vci": "tsx src/server/entries/oid4vci.server.ts",
+    "verifier-policy": "tsx src/server/entries/verifierPolicy.server.ts",
     "oid4vci:tunnel": "tsx src/oid4vci/startWithNgrok.ts"
   },
   "dependencies": {

@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import * as jose from "jose";
-import { initKeys } from "./keys.js";
-import { postPickupOffer } from "./oid4vci.controller.js";
+import { initKeys } from "../server/modules/oid4vci/keys.js";
+import { postPickupOffer } from "../server/modules/oid4vci/oid4vci.controller.js";
 import {
   buildJwtVc,
   createPreAuthCode,
@@ -10,7 +10,7 @@ import {
   exchangeCodeForToken,
   getUploadedVcForAccessToken,
   validateAccessToken,
-} from "./oid4vci.service.js";
+} from "../server/modules/oid4vci/oid4vci.service.js";
 
 test("createPickupOfferResponseFromVc stores the uploaded VC against the pre-authorized code", () => {
   const res = createPickupOfferResponseFromVc({
