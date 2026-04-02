@@ -12,7 +12,6 @@ async function main(): Promise<void> {
     register(router) {
       router.use(
         createVerifierPolicyRouter({
-          bearerToken: env.bearerToken,
           rpcUrl: env.rpcUrl,
           trustedIssuers: env.trustedIssuers,
         }),

@@ -8,7 +8,6 @@ export type Oid4VCIServerEnv = {
 export type VerifierPolicyServerEnv = {
   port: number;
   baseUrl: string;
-  bearerToken: string;
   rpcUrl?: string;
   trustedIssuers: string[];
 };
@@ -25,6 +24,17 @@ function parseTrustedIssuers(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function resolveTrustedIssuers(env: EnvRecord): string[] {
+  const configuredIssuers = parseTrustedIssuers(env.VERIFIER_POLICY_TRUSTED_ISSUERS);
+  const issuerDid = env.ISSUER_DID?.trim();
+
+  if (!issuerDid) {
+    return configuredIssuers;
+  }
+
+  return [...new Set([...configuredIssuers, issuerDid])];
+}
+
 export function readOid4VCIServerEnv(env: EnvRecord = process.env): Oid4VCIServerEnv {
   const port = parsePort(env.OID4VCI_PORT ?? env.PORT, 8787);
   const baseUrl =
@@ -39,19 +49,13 @@ export function readOid4VCIServerEnv(env: EnvRecord = process.env): Oid4VCIServe
 export function readVerifierPolicyServerEnv(
   env: EnvRecord = process.env,
 ): VerifierPolicyServerEnv {
-  const bearerToken = env.VERIFIER_POLICY_BEARER_TOKEN?.trim();
-  if (!bearerToken) {
-    throw new Error("Missing env var: VERIFIER_POLICY_BEARER_TOKEN");
-  }
-
   const port = parsePort(env.VERIFIER_POLICY_PORT ?? env.PORT, 8788);
   const baseUrl = env.BASE_URL ?? `http://localhost:${port}`;
 
   return {
     port,
     baseUrl,
-    bearerToken,
     rpcUrl: env.VERIFIER_POLICY_RPC_URL?.trim() || undefined,
-    trustedIssuers: parseTrustedIssuers(env.VERIFIER_POLICY_TRUSTED_ISSUERS),
+    trustedIssuers: resolveTrustedIssuers(env),
   };
 }

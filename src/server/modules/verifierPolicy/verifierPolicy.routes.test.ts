@@ -24,7 +24,6 @@ async function withServer(
     register(router) {
       router.use(
         createVerifierPolicyRouter({
-          bearerToken: "secret",
           evaluateVerifierPolicy:
             options.evaluateVerifierPolicy ??
             (async () => ({
@@ -75,14 +74,10 @@ async function withServer(
 }
 
 async function postRequest(baseUrl: string, init: {
-  authorization?: string;
   body?: string;
   contentType?: string;
 }) {
   const headers = new Headers();
-  if (init.authorization) {
-    headers.set("Authorization", init.authorization);
-  }
   if (init.contentType) {
     headers.set("Content-Type", init.contentType);
   }
@@ -99,17 +94,22 @@ async function postRequest(baseUrl: string, init: {
   };
 }
 
-test("verifier policy route returns 401 without bearer auth", async () => {
+test("verifier policy route accepts requests without bearer auth", async () => {
   await withServer(async (baseUrl) => {
     const response = await postRequest(baseUrl, {
       contentType: "application/json",
       body: JSON.stringify(sampleVc),
     });
 
-    assert.equal(response.status, 401);
+    assert.equal(response.status, 200);
     assert.deepEqual(response.body, {
-      error: "unauthorized",
-      error_description: "Missing or invalid bearer token",
+      decision: "accept",
+      checks: {
+        merkle: "passed",
+        chain: "passed",
+        revocation: "active",
+        issuerTrust: "trusted",
+      },
     });
   });
 });
@@ -117,7 +117,6 @@ test("verifier policy route returns 401 without bearer auth", async () => {
 test("verifier policy route returns 415 for non-json content", async () => {
   await withServer(async (baseUrl) => {
     const response = await postRequest(baseUrl, {
-      authorization: "Bearer secret",
       contentType: "text/plain",
       body: JSON.stringify(sampleVc),
     });
@@ -134,7 +133,6 @@ test("verifier policy route returns the service decision for valid requests", as
   await withServer(
     async (baseUrl) => {
       const response = await postRequest(baseUrl, {
-        authorization: "Bearer secret",
         contentType: "application/json",
         body: JSON.stringify(sampleVc),
       });

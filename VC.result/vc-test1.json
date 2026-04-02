@@ -1,0 +1,129 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/credentials/v2",
+    "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-edu-degree-v1.jsonld",
+    "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/iu-smartcert-v1.jsonld",
+    "https://infra-vc-registry-web-911368042037.asia-east2.run.app/contexts/merkle-receipt-v1.jsonld"
+  ],
+  "type": [
+    "VerifiableCredential",
+    "UniversityDegree",
+    "EducationalOccupationalCredential",
+    "VNEduDegreeCredential",
+    "IUSmartCertCredential"
+  ],
+  "id": "urn:uuid:example-degree-1",
+  "issuer": "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:principle",
+  "validFrom": "2026-03-15T08:58:56Z",
+  "credentialSubject": {
+    "id": "did:example:student1",
+    "degree": {
+      "type": "BachelorDegree",
+      "name": "BSc in Computer Science"
+    },
+    "iu:components": [
+      {
+        "name": "diploma",
+        "mandatory": true,
+        "componentType": "degreeCertificate",
+        "componentHash": "0x91fdb4b8bdf2b92894ed39b1eab761801dc99e38b3e3d22417dc35ffe57a7ac6"
+      },
+      {
+        "name": "transcript",
+        "mandatory": false,
+        "componentType": "academicTranscript",
+        "componentHash": "0x867d475726c54e31fdf3065a462b30dd0f092105fa4f52ce973766416826ab15"
+      }
+    ]
+  },
+  "credentialSchema": {
+    "id": "https://infra-vc-registry-web-911368042037.asia-east2.run.app/schemas/IUSmartCertUniversityCredential.json",
+    "type": "JsonSchema"
+  },
+  "evidence": [
+    {
+      "type": [
+        "IUSmartCertMerkleReceipt"
+      ],
+      "chainId": "eip155:11155111",
+      "contractAddress": "0x24b60F03fBFfE9E48cD6467b4e065e5553D44E8f",
+      "merkleRoot": "0x4f2f7be48d876f6be9d931aec0937a9dbca479454999df302d6d45525e90d32c",
+      "anchorTx": "0x101e8bb8a0479f514e333bb5f812f02ef31ed00b091649d4f583f9887d493377",
+      "deploymentTx": "0xb6ce3ccfe9cfb82ad31476ac5d7e0dd45b2b34e95a4c0ba1d7f6464f07756ffc",
+      "leafEncoding": "credentialID||componentType||content",
+      "merkleTreeSpec": {
+        "leafHashAlg": "sha256",
+        "nodeHashAlg": "keccak256",
+        "sortPairs": true,
+        "sortLeaves": true
+      },
+      "componentsProofs": [
+        {
+          "name": "diploma",
+          "mandatory": true,
+          "hash": "0x91fdb4b8bdf2b92894ed39b1eab761801dc99e38b3e3d22417dc35ffe57a7ac6",
+          "proof": [
+            "0x220abe347220cbac38554d42b8d0a1e24d2effb95a22bb9a4eff88f2fa6f921f",
+            "0xb93676faedfb2a305ab986c6ec6aa66d40cc8b176f805095c1fa6c86e21c22ae",
+            "0xddb6628328b0db09dcdfa742a69f6a8e8cf0710eeeae6f623458dceee3a2d497"
+          ]
+        },
+        {
+          "name": "transcript",
+          "mandatory": false,
+          "hash": "0x867d475726c54e31fdf3065a462b30dd0f092105fa4f52ce973766416826ab15",
+          "proof": [
+            "0xd9b279f8435e4032d0d83c90869876f2c4ff1326087e3647c62952e81aed1488",
+            "0xa5641c0229271d11ecf9f0724d33ea796945bbd4ad7738126a74d20ec4dcf598",
+            "0x9e1174a683774d09e81374001929231c788e37a34ac2306987010a09b38e5f78"
+          ]
+        }
+      ]
+    }
+  ],
+  "iu:merkleReceipt": {
+    "type": "IUSmartCertMerkleReceipt",
+    "chainId": "eip155:11155111",
+    "contractAddress": "0x24b60F03fBFfE9E48cD6467b4e065e5553D44E8f",
+    "merkleRoot": "0x4f2f7be48d876f6be9d931aec0937a9dbca479454999df302d6d45525e90d32c",
+    "anchorTx": "0x101e8bb8a0479f514e333bb5f812f02ef31ed00b091649d4f583f9887d493377",
+    "deploymentTx": "0xb6ce3ccfe9cfb82ad31476ac5d7e0dd45b2b34e95a4c0ba1d7f6464f07756ffc",
+    "leafEncoding": "credentialID||componentType||content",
+    "merkleTreeSpec": {
+      "leafHashAlg": "sha256",
+      "nodeHashAlg": "keccak256",
+      "sortPairs": true,
+      "sortLeaves": true
+    },
+    "componentsProofs": [
+      {
+        "name": "diploma",
+        "mandatory": true,
+        "hash": "0x91fdb4b8bdf2b92894ed39b1eab761801dc99e38b3e3d22417dc35ffe57a7ac6",
+        "proof": [
+          "0x220abe347220cbac38554d42b8d0a1e24d2effb95a22bb9a4eff88f2fa6f921f",
+          "0xb93676faedfb2a305ab986c6ec6aa66d40cc8b176f805095c1fa6c86e21c22ae",
+          "0xddb6628328b0db09dcdfa742a69f6a8e8cf0710eeeae6f623458dceee3a2d497"
+        ]
+      },
+      {
+        "name": "transcript",
+        "mandatory": false,
+        "hash": "0x867d475726c54e31fdf3065a462b30dd0f092105fa4f52ce973766416826ab15",
+        "proof": [
+          "0xd9b279f8435e4032d0d83c90869876f2c4ff1326087e3647c62952e81aed1488",
+          "0xa5641c0229271d11ecf9f0724d33ea796945bbd4ad7738126a74d20ec4dcf598",
+          "0x9e1174a683774d09e81374001929231c788e37a34ac2306987010a09b38e5f78"
+        ]
+      }
+    ]
+  },
+  "proof": {
+    "type": "DataIntegrityProof",
+    "cryptosuite": "eddsa-rdfc-2022",
+    "proofPurpose": "assertionMethod",
+    "created": "2026-03-15T09:00:21.607Z",
+    "verificationMethod": "did:web:infra-vc-registry-web-911368042037.asia-east2.run.app:issuers:principle#key-1",
+    "proofValue": "z4Rpbag2sVkx19nuKEVfZeYShJt3yt1n1BJ244sLES8PsZzZWaD3HheZS17cmi6kgd3rQGHqw7QFkKJmCqjNURDQB"
+  }
+}

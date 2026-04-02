@@ -134,6 +134,14 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 When `OID4VCI_PRIVATE_JWK` is set this way, OID4VCI JWT VCs and issuer metadata
 advertise `ES256` and emit the same `kid` as the registry DID document.
 
+### Verifier policy server only (not bundled to browser)
+
+- `VERIFIER_POLICY_TRUSTED_ISSUERS`
+  - Optional comma-separated issuer allowlist for delegated verifier policy checks
+  - The verifier policy server also imports `ISSUER_DID` into its local trusted issuer set automatically, so the active repo issuer is trusted without duplicating it in the list
+- `VERIFIER_POLICY_RPC_URL`
+  - Optional RPC override for verifier policy chain reads
+
 ## Issue a VC (UI)
 
 1) Fill `.env` at repo root.

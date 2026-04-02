@@ -18,7 +18,7 @@ This document does not describe proprietary Sphereon wallet internals. The final
 | Actor | Role in the flow |
 | --- | --- |
 | User | Starts the pickup flow from the issuer UI and approves import in the wallet |
-| Issuer UI | Calls the local pickup API and presents QR/deep-link data |
+| Issuer UI | Uploads a VC snapshot, creates a pickup offer, and presents QR / offer URL data |
 | Wallet | Resolves issuer metadata, requests token and credential, verifies signature, imports credential |
 | OID4VCI Issuer API | Exposes metadata, offer, token, nonce, and credential endpoints |
 | Registry DID endpoint | Serves the issuer `did:web` document and public verification key |
@@ -38,12 +38,12 @@ sequenceDiagram
     participant Registry as Registry contexts/schemas
     participant DB as Wallet DB / store
 
-    User->>UI: Click "Add to Wallet"
-    UI->>API: GET /oid4vci/pickup-offer?subject_id=...
+    User->>UI: Upload VC JSON and click "Add to Wallet"
+    UI->>API: POST /oid4vci/pickup-offer
     API-->>UI: { offer, offerUri, expiresInSec }
-    UI-->>User: Show QR / deep link
+    UI-->>User: Show QR / offer URL
 
-    User->>Wallet: Open openid-credential-offer://... link
+    User->>Wallet: Open or scan openid-credential-offer://... link
     Wallet->>API: GET /oid4vci/credential-offer?subject_id=...&pre_authorized_code=...
     API-->>Wallet: credential_offer payload by reference
 
@@ -77,18 +77,18 @@ sequenceDiagram
 
 ### 1. User starts wallet pickup
 
-The React UI calls the issuer pickup endpoint:
+The React UI uploads a VC JSON snapshot to the issuer pickup endpoint:
 
-- Endpoint: `GET /oid4vci/pickup-offer`
-- Code path: `src/ui/pickupApi.ts` -> `src/oid4vci/oid4vci.controller.ts#getPickupOffer`
+- Endpoint: `POST /oid4vci/pickup-offer`
+- Code path: `src/ui/pickupApi.ts` -> `src/oid4vci/oid4vci.controller.ts#postPickupOffer`
 
 The issuer returns:
 
 - `offer`: the raw credential offer payload
 - `offerUri`: an `openid-credential-offer://` URI containing a `credential_offer_uri`
-- `expiresInSec`: TTL for the generated pre-authorized code
+- `expiresInSec`: TTL for the generated pre-authorized code and uploaded VC session
 
-The UI shows that `offerUri` as a QR code or deep link.
+The UI shows that `offerUri` as a QR code and a copyable offer URL.
 
 ### 2. Wallet opens the offer by reference
 
@@ -118,6 +118,11 @@ The issuer returns metadata including:
 - `jwks_uri`
 - `credential_configurations_supported`
 - `credential_signing_alg_values_supported`
+
+Current metadata versioning behavior:
+
+- `/.well-known/openid-credential-issuer` is the default pure Draft 13 endpoint
+- `/.well-known/openid-credential-issuer-draft11` is a separate legacy endpoint for older wallets
 
 In the current working registry-backed configuration, the important values are:
 
@@ -156,7 +161,7 @@ The wallet calls:
 The issuer:
 
 1. validates the access token
-2. loads the canonical `vc.json`
+2. loads the uploaded VC snapshot linked to that token
 3. maps it into a JWT VC payload
 4. signs it with the active OID4VCI key
 
@@ -225,7 +230,7 @@ That is the point at which the credential becomes visible to the end user in the
 
 | Component | What it does | What it does not do |
 | --- | --- | --- |
-| Issuer UI | Starts pickup, requests offer URI, renders QR/deep link | Does not mint tokens, sign JWTs, or verify wallet imports |
+| Issuer UI | Uploads the VC snapshot, requests offer URI, renders QR and offer URL | Does not mint tokens, sign JWTs, or verify wallet imports |
 | OID4VCI Issuer API | Hosts OID4VCI endpoints, issues tokens, signs JWT VC | Does not control wallet verification rules or wallet DB persistence |
 | Registry | Publishes issuer DID document and public verification key | Does not issue the credential itself |
 | Wallet | Executes OID4VCI protocol, resolves DID, verifies signature, decides import | Does not trust the issuer response blindly |
@@ -235,10 +240,10 @@ That is the point at which the credential becomes visible to the end user in the
 
 | Failure point | Typical cause | Observed symptom |
 | --- | --- | --- |
-| Pickup offer generation | Wrong `OID4VCI_BASE_URL` or issuer unreachable | QR/deep link cannot be created |
+| Pickup offer generation | Wrong `OID4VCI_BASE_URL`, malformed upload, or issuer unreachable | QR / offer URL cannot be created |
 | Credential offer resolution | Expired pre-authorized code | Wallet cannot continue pickup |
 | Issuer metadata lookup | Wrong `BASE_URL`, public URL unreachable, tunnel misconfigured | Wallet cannot discover token/credential endpoints |
-| Token exchange | Missing or invalid pre-authorized code | `invalid_grant` from `/oid4vci/token` |
+| Token exchange | Missing code, wrong issuer instance, or issuer restart after offer creation | `invalid_grant` from `/oid4vci/token` |
 | Credential issuance | Missing or invalid bearer token | `invalid_token` from `/oid4vci/credential` |
 | Signature verification | `OID4VCI_PRIVATE_JWK` does not match registry `did.json` public key | Wallet shows `invalid_signature` |
 | DID resolution | Registry `did.json` unreachable or wrong path | Wallet cannot verify issuer key |

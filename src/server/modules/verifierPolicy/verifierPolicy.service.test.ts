@@ -37,6 +37,20 @@ const sampleVc = {
   evidence: [sampleReceipt],
 };
 
+const wrappedJwtVcPayload = {
+  iss: "did:web:issuer.iu.example",
+  sub: "did:example:student123",
+  jti: "urn:uuid:test-vc",
+  vc: {
+    type: ["VerifiableCredential", "IUSmartCertCredential"],
+    credentialSubject: {
+      id: "did:example:student123",
+    },
+    evidence: [sampleReceipt],
+    iu_merkle_receipt: sampleReceipt,
+  },
+};
+
 function createDeps(
   overrides: Partial<NonNullable<EvaluateVerifierPolicyOptions["deps"]>> = {},
 ) {
@@ -82,6 +96,31 @@ test("evaluateVerifierPolicy returns accept when all enabled checks pass", async
     },
   });
   assert.equal(result.logCategory, "accept");
+});
+
+test("evaluateVerifierPolicy accepts wrapped JWT VC payloads from the old walt.id webhook flow", async () => {
+  let resolvedVc: Record<string, unknown> | undefined;
+
+  const result = await evaluateVerifierPolicy(wrappedJwtVcPayload, {
+    trustedIssuers: ["did:web:issuer.iu.example"],
+    deps: createDeps({
+      resolveReceipt: async (vc) => {
+        resolvedVc = vc;
+        return {
+          receipt: sampleReceipt as any,
+          source: "legacy" as const,
+        };
+      },
+    }),
+  });
+
+  assert.equal(result.httpStatus, 200);
+  assert.equal(resolvedVc?.issuer, "did:web:issuer.iu.example");
+  assert.equal(resolvedVc?.id, "urn:uuid:test-vc");
+  assert.deepEqual(resolvedVc?.credentialSubject, {
+    id: "did:example:student123",
+  });
+  assert.deepEqual(resolvedVc?.["iu:merkleReceipt"], sampleReceipt);
 });
 
 test("evaluateVerifierPolicy returns 409 when the issuer is not trusted", async () => {
@@ -153,6 +192,34 @@ test("evaluateVerifierPolicy returns 422 for non-object input", async () => {
     },
   });
   assert.equal(result.logCategory, "input_error");
+});
+
+test("evaluateVerifierPolicy returns 422 for object payloads without any issuer claim", async () => {
+  const result = await evaluateVerifierPolicy(
+    {
+      vc: {
+        credentialSubject: {
+          id: "did:example:student123",
+        },
+      },
+    },
+    {
+      trustedIssuers: ["did:web:issuer.iu.example"],
+      deps: createDeps(),
+    },
+  );
+
+  assert.equal(result.httpStatus, 422);
+  assert.deepEqual(result.body, {
+    decision: "reject",
+    reason: "VC issuer is missing or invalid",
+    checks: {
+      merkle: "skipped",
+      chain: "skipped",
+      revocation: "skipped",
+      issuerTrust: "skipped",
+    },
+  });
 });
 
 test("evaluateVerifierPolicy returns 503 for dependency failures", async () => {

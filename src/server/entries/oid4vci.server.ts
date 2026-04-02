@@ -2,17 +2,24 @@ import "dotenv/config";
 
 import { createApp } from "../app/createApp.js";
 import { initKeys } from "../modules/oid4vci/keys.js";
-import oid4vciRoutes from "../modules/oid4vci/oid4vci.routes.js";
-import { readOid4VCIServerEnv } from "../shared/config/serverEnv.js";
+import { registerOid4VCIServerRoutes } from "./oid4vciApp.js";
+import {
+  readOid4VCIServerEnv,
+  readVerifierPolicyServerEnv,
+} from "../shared/config/serverEnv.js";
 
 async function main(): Promise<void> {
   const env = readOid4VCIServerEnv();
+  const verifierPolicyEnv = readVerifierPolicyServerEnv();
   await initKeys();
 
   const app = createApp({
     baseUrl: env.baseUrl,
     register(router) {
-      router.use(oid4vciRoutes);
+      registerOid4VCIServerRoutes(router, {
+        rpcUrl: verifierPolicyEnv.rpcUrl,
+        trustedIssuers: verifierPolicyEnv.trustedIssuers,
+      });
     },
   });
 
@@ -26,6 +33,7 @@ async function main(): Promise<void> {
     console.log(`POST ${env.baseUrl}/oid4vci/pickup-offer`);
     console.log(`POST ${env.baseUrl}/oid4vci/token`);
     console.log(`POST ${env.baseUrl}/oid4vci/credential`);
+    console.log(`POST ${env.baseUrl}/api/verifier/policies/vc`);
   });
 }
 

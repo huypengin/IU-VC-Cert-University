@@ -112,3 +112,4 @@ vc.json
 .cursor
 .claude
 .worktrees/
+./VC.result/*

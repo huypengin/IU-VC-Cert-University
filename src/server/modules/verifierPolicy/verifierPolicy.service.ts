@@ -34,6 +34,21 @@ function getDependencies(
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function isJwtVcWrapper(input: Record<string, unknown>): input is Record<string, unknown> & {
+  vc: Record<string, unknown>;
+} {
+  return isRecord(input.vc) && (
+    typeof input.iss === "string" ||
+    typeof input.sub === "string" ||
+    typeof input.jti === "string" ||
+    input.nbf !== undefined
+  );
+}
+
 function extractIssuer(vc: Record<string, unknown>): string | undefined {
   const issuer = vc.issuer;
   if (typeof issuer === "string") {
@@ -46,6 +61,32 @@ function extractIssuer(vc: Record<string, unknown>): string | undefined {
     }
   }
   return undefined;
+}
+
+function normalizeCredentialInput(input: Record<string, unknown>): Record<string, unknown> {
+  if (!isJwtVcWrapper(input)) {
+    return input;
+  }
+
+  const vc = { ...input.vc };
+
+  if (!extractIssuer(vc) && typeof input.iss === "string") {
+    vc.issuer = input.iss;
+  }
+
+  if (vc["iu:merkleReceipt"] === undefined && vc.iu_merkle_receipt !== undefined) {
+    vc["iu:merkleReceipt"] = vc.iu_merkle_receipt;
+  }
+
+  if (vc.id === undefined && typeof input.jti === "string") {
+    vc.id = input.jti;
+  }
+
+  if (!isRecord(vc.credentialSubject) && typeof input.sub === "string") {
+    vc.credentialSubject = { id: input.sub };
+  }
+
+  return vc;
 }
 
 function isDependencyFailureMessage(message: string): boolean {
@@ -79,7 +120,7 @@ export async function evaluateVerifierPolicy(
     };
   }
 
-  const vc = input as Record<string, unknown>;
+  const vc = normalizeCredentialInput(input as Record<string, unknown>);
   const issuer = extractIssuer(vc);
   if (!issuer) {
     return {

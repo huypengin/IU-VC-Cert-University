@@ -105,3 +105,16 @@ When the verifier executes Phase 2b, it follows these exact steps:
     *   If all steps (Provider -> Receipt -> Event -> Verify Call -> Revocation Check) succeed, the layer returns **Valid**.
 
 In development, skipping the chain check allows for faster testing of the complex Merkle logic without needing constant blockchain connectivity.
+
+## Verifier-Policy Webhook Contract
+
+For the IU verifier-policy webhook, the receiver expects:
+- `POST /api/verifier/policies/vc`
+- `Content-Type: application/json`
+- raw VC JSON in the request body, or the older walt.id JWT VC wrapper payload with top-level `iss` and nested `vc`
+
+When `npm run oid4vci:tunnel` is active, the same public `BASE_URL` now also exposes this path, for example `https://<your-ngrok-domain>/api/verifier/policies/vc`.
+
+The current IU compatibility mode is intentionally unauthenticated so the older walt.id verifier portal "Webhook Policy" UI can reach the happy path. Bearer/basic auth is supported in other walt.id configuration paths, and session notification webhooks are a separate mechanism.
+
+Operationally: do not assume this IU endpoint currently requires an auth header for the old portal flow.
