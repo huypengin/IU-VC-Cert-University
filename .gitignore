@@ -111,5 +111,7 @@ vc.json
 .antigravity
 .cursor
 .claude
+AGENTS.MD
+CLAUDE.MD
 .worktrees/
 ./VC.result/*

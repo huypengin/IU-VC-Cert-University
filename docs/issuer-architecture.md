@@ -91,7 +91,7 @@ Current issuance rule:
 
 - one issuance batch = one Merkle root = one deployed contract
 
-On `main`, the current issue screen is intentionally a development-sized batch flow for `3-4` students, each contributing `diploma` and `transcript`.
+On `main`, the current issue screen is intentionally a testing-sized batch flow for `1` or more students. One issue action creates a distinct VC for each uploaded `diploma`, `transcript`, or `recruiterSubmission` PDF while sharing one batch Merkle root and contract anchor.
 
 ### 3. VC Assembly and Data Integrity Layer
 

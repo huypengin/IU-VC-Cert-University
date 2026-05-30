@@ -79,6 +79,57 @@ test("buildJwtVc uses the uploaded VC linked to the access token instead of proc
   assert.equal(payload.jti, "urn:uuid:uploaded-vc");
 });
 
+test("buildJwtVc adds wallet display metadata from the paper label", async () => {
+  const previousIssuerName = process.env.ISSUER_NAME;
+  process.env.ISSUER_NAME = "International University";
+
+  const res = createPickupOfferResponseFromVc({
+    subjectId: "did:example:student123",
+    vc: {
+      id: "urn:uuid:uploaded-vc",
+      type: ["VerifiableCredential", "IUSmartCertCredential"],
+      credentialSubject: {
+        id: "did:example:student123",
+        degree: {
+          name: "BSc",
+          "iu:paperType": "diploma",
+          "iu:paperLabel": "Diploma",
+        },
+      },
+    },
+  });
+
+  const code =
+    (
+      res.offer.grants["urn:ietf:params:oauth:grant-type:pre-authorized_code"] as {
+        "pre-authorized_code": string;
+      }
+    )["pre-authorized_code"];
+  const token = exchangeCodeForToken(code);
+  try {
+    await initKeys();
+    const jwt = await buildJwtVc(validateAccessToken(token.access_token));
+    const payload = jose.decodeJwt(jwt);
+    const vc = payload.vc as any;
+
+    assert.equal(vc.display[0].display.title, "Diploma");
+    assert.equal(vc.type.at(-1), "Diploma");
+    assert.equal(vc.issuer.name, "International University");
+    assert.equal(vc.issuer.id, payload.iss);
+    assert.deepEqual(vc.display[0].display.claims, {
+      "Paper Type": "$.credentialSubject.degree['iu:paperType']",
+      "Paper Label": "$.credentialSubject.degree['iu:paperLabel']",
+      Degree: "$.credentialSubject.degree.name",
+    });
+  } finally {
+    if (previousIssuerName === undefined) {
+      delete process.env.ISSUER_NAME;
+    } else {
+      process.env.ISSUER_NAME = previousIssuerName;
+    }
+  }
+});
+
 test("postPickupOffer returns an offer for an uploaded VC payload", () => {
   const req = {
     body: {

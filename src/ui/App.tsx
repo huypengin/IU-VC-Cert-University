@@ -7,9 +7,12 @@ import { buildRevocationRequestFromVc } from "../revocation/request";
 import { verifyVC, type VerificationResult } from "../verifier";
 import { formatBatchIssuance } from "./batchIssuance";
 import { describeChainStatus } from "./chainStatus";
+import { formatComponentFileContent } from "./componentFile";
 import {
   addStudentToIssueBatchState,
   createDefaultIssueBatchState,
+  createSubmittedIssueBatchState,
+  DEMO_CREDENTIAL_PRESETS,
   removeStudentFromIssueBatchState,
   type IssueBatchStudentState,
 } from "./issueBatchState";
@@ -36,11 +39,28 @@ function downloadJson(filename: string, data: unknown) {
   URL.revokeObjectURL(url);
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Uploaded file could not be read as text data"));
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Uploaded file could not be read"));
+    reader.readAsDataURL(file);
+  });
+}
+
 type RevokeResult = Awaited<ReturnType<typeof revokeCredentialOnChain>>;
 type BatchIssuanceSummary = ReturnType<typeof formatBatchIssuance>;
 type IssuedStudentVm = {
   studentId: string;
   credentialId: string;
+  paperType?: string;
+  paperLabel?: string;
   vc: any;
 };
 
@@ -59,6 +79,7 @@ export default function App() {
 
   // Verifier state
   const [vcInput, setVcInput] = useState("");
+  const [vcFilename, setVcFilename] = useState<string | null>(null);
   const [verifyRpcUrl, setVerifyRpcUrl] = useState("");
   const [skipChain, setSkipChain] = useState(false);
   const [advancedMode, setAdvancedMode] = useState(true);
@@ -80,13 +101,28 @@ export default function App() {
   const [pickupNowMs, setPickupNowMs] = useState(Date.now());
 
   const canIssue = useMemo(() => {
-    return (
-      validFrom &&
-      issueChainId &&
-      issueBatchState.students.length >= 3 &&
-      issueBatchState.students.length <= 4
-    );
-  }, [issueBatchState.students.length, issueChainId, validFrom]);
+    if (!validFrom || !issueChainId || issueBatchState.students.length < 1) {
+      return false;
+    }
+
+    try {
+      createSubmittedIssueBatchState(issueBatchState);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [issueBatchState, issueChainId, validFrom]);
+
+  const issuedStudentGroups = useMemo(() => {
+    const groups = new Map<string, IssuedStudentVm[]>();
+    for (const credential of issuedStudents) {
+      groups.set(credential.studentId, [...(groups.get(credential.studentId) ?? []), credential]);
+    }
+    return Array.from(groups.entries()).map(([studentId, credentials]) => ({
+      studentId,
+      credentials,
+    }));
+  }, [issuedStudents]);
 
   function updateStudent(studentIndex: number, updater: (student: IssueBatchStudentState) => IssueBatchStudentState) {
     setIssueBatchState((state) => ({
@@ -106,7 +142,7 @@ export default function App() {
         chainId: issueChainId,
         rpcUrl: issueRpcUrl,
         validFrom,
-        students: issueBatchState.students,
+        students: createSubmittedIssueBatchState(issueBatchState).students,
         devBatchLimits: true,
       });
 
@@ -135,6 +171,64 @@ export default function App() {
       setVerifyError(e instanceof Error ? e.message : String(e));
     } finally {
       setVerifying(false);
+    }
+  }
+
+  async function onVerifyFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setVerifyError(null);
+    setVerifyResult(null);
+    setRevokeError(null);
+    setRevokeResult(null);
+
+    const file = event.target.files?.[0];
+    if (!file) {
+      setVcFilename(null);
+      setVcInput("");
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      JSON.parse(text);
+      setVcFilename(file.name);
+      setVcInput(text);
+    } catch (e) {
+      setVcFilename(null);
+      setVcInput("");
+      setVerifyError(e instanceof Error ? e.message : String(e));
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  async function onComponentFileChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+    studentIndex: number,
+    componentIndex: number,
+  ) {
+    setError(null);
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const content = formatComponentFileContent({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        dataUrl,
+      });
+      updateStudent(studentIndex, (current) => ({
+        ...current,
+        components: current.components.map((candidate, candidateIndex) =>
+          candidateIndex === componentIndex ? { ...candidate, content } : candidate,
+        ),
+      }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      event.target.value = "";
     }
   }
 
@@ -296,8 +390,8 @@ export default function App() {
                 />
               </label>
               <p className="hint">
-                Development mode issues a small batch of 3-4 students. Each student contributes
-                `diploma` and `transcript`, so the batch has 6-8 components total.
+                Development mode issues a test batch of 1 or more students. One click creates a
+                distinct VC for each uploaded paper PDF.
               </p>
             </section>
 
@@ -307,7 +401,6 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIssueBatchState((state) => addStudentToIssueBatchState(state))}
-                  disabled={issueBatchState.students.length >= 4}
                 >
                   Add student
                 </button>
@@ -349,7 +442,7 @@ export default function App() {
                         onClick={() =>
                           setIssueBatchState((state) => removeStudentFromIssueBatchState(state, studentIndex))
                         }
-                        disabled={issueBatchState.students.length <= 3}
+                        disabled={issueBatchState.students.length === 0}
                       >
                         Remove
                       </button>
@@ -358,15 +451,24 @@ export default function App() {
                     <div className="row">
                       <label>
                         Degree Type
-                        <input
+                        <select
                           value={student.degree.type}
                           onChange={(e) =>
                             updateStudent(studentIndex, (current) => ({
                               ...current,
-                              degree: { ...current.degree, type: e.target.value },
+                              degree:
+                                DEMO_CREDENTIAL_PRESETS.find(
+                                  (preset) => preset.type === e.target.value,
+                                ) ?? { ...current.degree, type: e.target.value },
                             }))
                           }
-                        />
+                        >
+                          {DEMO_CREDENTIAL_PRESETS.map((preset) => (
+                            <option key={preset.type} value={preset.type}>
+                              {preset.type}
+                            </option>
+                          ))}
+                        </select>
                       </label>
                       <label>
                         Degree Name
@@ -382,25 +484,44 @@ export default function App() {
                       </label>
                     </div>
 
-                    {student.components.map((component, componentIndex) => (
-                      <label key={`${student.studentId}-${component.name}`}>
-                        {component.name} content
-                        <textarea
-                          value={component.content}
-                          onChange={(e) =>
-                            updateStudent(studentIndex, (current) => ({
-                              ...current,
-                              components: current.components.map((candidate, candidateIndex) =>
-                                candidateIndex === componentIndex
-                                  ? { ...candidate, content: e.target.value }
-                                  : candidate,
-                              ),
-                            }))
-                          }
-                          rows={2}
-                        />
-                      </label>
-                    ))}
+                    {student.components.map((component, componentIndex) => {
+                      const uploadedFile =
+                        component.content.includes('"source":"uploaded-file"') &&
+                        component.content.includes('"filename"');
+
+                      return (
+                        <div key={`${student.studentId}-${component.name}`} className="component-input">
+                          <label>
+                            {component.name} PDF evidence
+                            <input
+                              type="file"
+                              accept="application/pdf,.pdf"
+                              onChange={(e) => onComponentFileChange(e, studentIndex, componentIndex)}
+                            />
+                          </label>
+                          <label>
+                            {component.name} content fallback
+                            <textarea
+                              value={component.content}
+                              onChange={(e) =>
+                                updateStudent(studentIndex, (current) => ({
+                                  ...current,
+                                  components: current.components.map((candidate, candidateIndex) =>
+                                    candidateIndex === componentIndex
+                                      ? { ...candidate, content: e.target.value }
+                                      : candidate,
+                                  ),
+                                }))
+                              }
+                              rows={2}
+                            />
+                          </label>
+                          {uploadedFile && (
+                            <div className="result-info">PDF file attached for {component.name}</div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ))}
               </div>
@@ -430,18 +551,31 @@ export default function App() {
             </section>
           )}
 
-          {issuedStudents.map((student) => (
-            <section key={student.studentId} className="card">
-              <div className="actions">
-                <h2>{student.studentId}</h2>
-                <button
-                  type="button"
-                  onClick={() => downloadJson(`${student.studentId}.vc.json`, student.vc)}
-                >
-                  Download {student.studentId}.vc.json
-                </button>
+          {issuedStudentGroups.map((group) => (
+            <section key={group.studentId} className="card">
+              <h2>{group.studentId}</h2>
+              <div className="credential-list">
+                {group.credentials.map((credential) => (
+                  <div key={credential.credentialId} className="credential-item">
+                    <div>
+                      <strong>{credential.paperLabel ?? credential.paperType ?? "Credential"}</strong>
+                      <div className="hint">{credential.credentialId}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        downloadJson(
+                          `${credential.studentId}.${credential.paperType ?? "credential"}.vc.json`,
+                          credential.vc,
+                        )
+                      }
+                    >
+                      Download VC
+                    </button>
+                    <pre className="code">{JSON.stringify(credential.vc, null, 2)}</pre>
+                  </div>
+                ))}
               </div>
-              <pre className="code">{JSON.stringify(student.vc, null, 2)}</pre>
             </section>
           ))}
         </>
@@ -452,13 +586,18 @@ export default function App() {
         <>
           <div className="grid">
             <section className="card span2">
-              <h2>Paste VC JSON</h2>
+              <h2>Upload VC JSON</h2>
+              <label>
+                VC file
+                <input type="file" accept="application/json,.json" onChange={onVerifyFileChange} />
+              </label>
+              {vcFilename && <div className="result-info">Selected VC: {vcFilename}</div>}
               <textarea
                 className="vc-input"
                 value={vcInput}
-                onChange={(e) => setVcInput(e.target.value)}
-                placeholder='{"@context": [...], "type": [...], ...}'
-                rows={12}
+                readOnly
+                placeholder="Upload a VC JSON file to verify or revoke it"
+                rows={10}
               />
             </section>
 
@@ -505,7 +644,11 @@ export default function App() {
             </section>
 
             <section className="card">
-              <h2>Revoke On-Chain</h2>
+              <h2>Revoke Credential</h2>
+              <p className="hint">
+                Uses the uploaded VC receipt to derive the revocation key and submit the on-chain
+                revoke transaction from MetaMask.
+              </p>
               <label>
                 Revocation reason
                 <textarea

@@ -60,3 +60,14 @@ test("readOid4VCIServerEnv preserves the existing OID4VCI defaults", () => {
   assert.equal(env.port, 8787);
   assert.equal(env.baseUrl, "http://localhost:8787");
 });
+
+test("readOid4VCIServerEnv uses explicit BASE_URL when DEV is set", () => {
+  const env = readOid4VCIServerEnv({
+    BASE_URL: "https://demo.ngrok-free.dev",
+    DEV: "true",
+    OID4VCI_PORT: "8787",
+  });
+
+  assert.equal(env.port, 8787);
+  assert.equal(env.baseUrl, "https://demo.ngrok-free.dev");
+});

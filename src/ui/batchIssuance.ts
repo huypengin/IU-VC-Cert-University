@@ -11,6 +11,8 @@ type BatchIssuanceResult = {
   students: Array<{
     studentId: string;
     credentialId: string;
+    paperType?: string;
+    paperLabel?: string;
     vc: Record<string, unknown>;
   }>;
 };
@@ -28,6 +30,8 @@ export function formatBatchIssuance(result: BatchIssuanceResult) {
     students: result.students.map((student) => ({
       studentId: student.studentId,
       credentialId: student.credentialId,
+      paperType: student.paperType,
+      paperLabel: student.paperLabel,
       contractAddress:
         ((student.vc["iu:merkleReceipt"] as Record<string, unknown> | undefined)?.contractAddress as string | undefined)
         ?? result.batch.contractAddress,

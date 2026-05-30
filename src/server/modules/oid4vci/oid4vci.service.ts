@@ -22,6 +22,13 @@ export interface UploadedVcSnapshot extends Record<string, unknown> {
   "iu:merkleReceipt"?: unknown;
 }
 
+type WalletDisplayManifest = {
+  display: {
+    title: string;
+    claims: Record<string, string>;
+  };
+};
+
 interface PreAuthEntry {
   createdAt: number;
   expiresAt: number;
@@ -212,6 +219,61 @@ function getUploadedVcFromTokenMeta(tokenMeta: TokenEntry): UploadedVcSnapshot {
   return tokenMeta.uploadedVc;
 }
 
+function getRecordField(value: unknown, key: string): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const field = (value as Record<string, unknown>)[key];
+  return field && typeof field === "object" && !Array.isArray(field)
+    ? field as Record<string, unknown>
+    : undefined;
+}
+
+function getPaperLabel(rawVc: UploadedVcSnapshot): string | undefined {
+  const degree = getRecordField(rawVc.credentialSubject, "degree");
+  const paperLabel = degree?.["iu:paperLabel"];
+  return typeof paperLabel === "string" && paperLabel.trim() ? paperLabel : undefined;
+}
+
+function buildWalletCredentialTypes(rawVc: UploadedVcSnapshot): unknown {
+  const originalTypes = Array.isArray(rawVc.type) ? rawVc.type : undefined;
+  const paperLabel = getPaperLabel(rawVc);
+  if (!paperLabel) {
+    return rawVc.type ?? ["VerifiableCredential"];
+  }
+
+  const baseTypes = originalTypes?.filter((type) => type !== paperLabel) ?? ["VerifiableCredential"];
+  return [...baseTypes, paperLabel];
+}
+
+function buildWalletDisplayManifest(rawVc: UploadedVcSnapshot): WalletDisplayManifest[] | undefined {
+  const title = getPaperLabel(rawVc);
+  if (!title) {
+    return undefined;
+  }
+
+  return [
+    {
+      display: {
+        title,
+        claims: {
+          "Paper Type": "$.credentialSubject.degree['iu:paperType']",
+          "Paper Label": "$.credentialSubject.degree['iu:paperLabel']",
+          Degree: "$.credentialSubject.degree.name",
+        },
+      },
+    },
+  ];
+}
+
+function buildWalletIssuer(issuerDid: string): Record<string, string> {
+  return {
+    id: issuerDid,
+    name: process.env.ISSUER_NAME?.trim() || "International University",
+  };
+}
+
 // ─── JWT VC builder ─────────────────────────────────────────────────────────
 
 /**
@@ -229,6 +291,7 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
   // Extract evidence and merkleReceipt as non-critical claims
   const evidence = rawVc.evidence ?? [];
   const merkleReceipt = rawVc["iu:merkleReceipt"] ?? null;
+  const display = buildWalletDisplayManifest(rawVc);
 
   // Build JWT payload
   const payload: Record<string, unknown> = {
@@ -241,8 +304,10 @@ export async function buildJwtVc(tokenMeta: TokenEntry): Promise<string> {
       "@context": [
         "https://www.w3.org/2018/credentials/v1",
       ],
-      type: rawVc.type ?? ["VerifiableCredential"],
+      type: buildWalletCredentialTypes(rawVc),
+      issuer: buildWalletIssuer(issuerDid),
       credentialSubject: rawVc.credentialSubject ?? {},
+      ...(display ? { display } : {}),
       // Non-critical claims – NOT in "proof"
       evidence,
       ...(merkleReceipt ? { iu_merkle_receipt: merkleReceipt } : {}),

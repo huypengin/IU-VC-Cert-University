@@ -31,6 +31,19 @@ type IssueBatchDeps = {
   signVc?: typeof signVc;
 };
 
+function createPaperCredentialId(baseCredentialId: string, paperType: string): string {
+  return `${baseCredentialId}:${paperType}`;
+}
+
+function formatPaperLabel(paperType: string): string {
+  const labels: Record<string, string> = {
+    diploma: "Diploma",
+    transcript: "Transcript",
+    recruiterSubmission: "Recruiter Submission",
+  };
+  return labels[paperType] ?? paperType;
+}
+
 export async function issueBatch(
   args: IssueBatchArgs,
   deps: IssueBatchDeps = {},
@@ -47,6 +60,8 @@ export async function issueBatch(
   students: Array<{
     studentId: string;
     credentialId: string;
+    paperType: string;
+    paperLabel: string;
     vc: SignedVc;
   }>;
 }> {
@@ -54,26 +69,29 @@ export async function issueBatch(
   if (students.length === 0) {
     throw new Error("issueBatch: students must not be empty");
   }
-  if (devBatchLimits && (students.length < 3 || students.length > 4)) {
-    throw new Error("issueBatch: dev issue flow supports only 3-4 students");
-  }
-
   const deployBatchContractImpl = deps.deployBatchContract ?? deployBatchContract;
   const anchorBatchRootOnceImpl = deps.anchorBatchRootOnce ?? anchorBatchRootOnce;
   const assembleVcImpl = deps.assembleVc ?? assembleVc;
   const signVcImpl = deps.signVc ?? signVc;
 
+  const paperCredentials = students.flatMap((student) =>
+    student.components.map((component) => ({
+      student,
+      component,
+      paperType: component.name,
+      paperLabel: formatPaperLabel(component.name),
+      credentialId: createPaperCredentialId(student.credentialId, component.name),
+      batchStudentId: `${student.studentId}:${component.name}`,
+    })),
+  );
+
   const batchMerkle = buildBatchMerkle({
-    students: students.map((student) => ({
-      studentId: student.studentId,
-      credentialId: student.credentialId,
-      components: student.components,
+    students: paperCredentials.map((paper) => ({
+      studentId: paper.batchStudentId,
+      credentialId: paper.credentialId,
+      components: [paper.component],
     })),
   });
-  if (devBatchLimits && (batchMerkle.batch.componentCount < 6 || batchMerkle.batch.componentCount > 8)) {
-    throw new Error("issueBatch: dev issue flow supports only 6-8 components");
-  }
-
   const deployed = await deployBatchContractImpl({
     chainId,
     rpcUrl,
@@ -88,17 +106,21 @@ export async function issueBatch(
   });
 
   const issuedStudents = await Promise.all(
-    students.map(async (student) => {
-      const batchStudent = batchMerkle.students.find((candidate) => candidate.studentId === student.studentId);
+    paperCredentials.map(async (paper) => {
+      const batchStudent = batchMerkle.students.find((candidate) => candidate.studentId === paper.batchStudentId);
       if (!batchStudent) {
-        throw new Error(`issueBatch: missing batch merkle result for student ${student.studentId}`);
+        throw new Error(`issueBatch: missing batch merkle result for paper ${paper.batchStudentId}`);
       }
 
       const unsigned = assembleVcImpl({
-        credentialId: student.credentialId,
+        credentialId: paper.credentialId,
         validFrom,
-        subjectDid: student.subjectDid,
-        degree: student.degree,
+        subjectDid: paper.student.subjectDid,
+        degree: {
+          ...paper.student.degree,
+          "iu:paperType": paper.paperType,
+          "iu:paperLabel": paper.paperLabel,
+        },
         components: batchStudent.receiptComponents.map((component) => ({
           name: component.name,
           mandatory: component.mandatory,
@@ -119,8 +141,10 @@ export async function issueBatch(
 
       const vc = await signVcImpl(unsigned);
       return {
-        studentId: student.studentId,
-        credentialId: student.credentialId,
+        studentId: paper.student.studentId,
+        credentialId: paper.credentialId,
+        paperType: paper.paperType,
+        paperLabel: paper.paperLabel,
         vc,
       };
     }),
@@ -133,7 +157,7 @@ export async function issueBatch(
       deploymentTx: deployed.deploymentTx,
       anchorTx: anchored.anchorTx,
       merkleRoot: batchMerkle.batch.merkleRoot,
-      studentCount: batchMerkle.batch.studentCount,
+      studentCount: students.length,
       componentCount: batchMerkle.batch.componentCount,
     },
     students: issuedStudents,

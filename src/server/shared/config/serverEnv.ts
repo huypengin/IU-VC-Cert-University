@@ -37,8 +37,7 @@ function resolveTrustedIssuers(env: EnvRecord): string[] {
 
 export function readOid4VCIServerEnv(env: EnvRecord = process.env): Oid4VCIServerEnv {
   const port = parsePort(env.OID4VCI_PORT ?? env.PORT, 8787);
-  const baseUrl =
-    env.DEV ? `http://localhost:${port}` : env.BASE_URL ?? `http://localhost:${port}`;
+  const baseUrl = env.BASE_URL ?? `http://localhost:${port}`;
 
   return {
     port,

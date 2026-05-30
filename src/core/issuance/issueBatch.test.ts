@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import * as core from "../index.js";
 
-test("issueBatch deploys once anchors once and returns one VC per student", async () => {
+test("issueBatch deploys once anchors once and returns one distinct VC per student paper", async () => {
   const issueBatch = (core as any).issueBatch;
 
   assert.equal(typeof issueBatch, "function");
@@ -37,6 +37,12 @@ test("issueBatch deploys once anchors once and returns one VC per student", asyn
               componentType: "academicTranscript",
               content: "transcript-001",
             },
+            {
+              name: "recruiterSubmission",
+              mandatory: false,
+              componentType: "recruiterSubmissionPaper",
+              content: "recruiter-001",
+            },
           ],
         },
         {
@@ -56,6 +62,12 @@ test("issueBatch deploys once anchors once and returns one VC per student", asyn
               mandatory: false,
               componentType: "academicTranscript",
               content: "transcript-002",
+            },
+            {
+              name: "recruiterSubmission",
+              mandatory: false,
+              componentType: "recruiterSubmissionPaper",
+              content: "recruiter-002",
             },
           ],
         },
@@ -107,10 +119,23 @@ test("issueBatch deploys once anchors once and returns one VC per student", asyn
 
   assert.equal(deployCalls, 1);
   assert.equal(anchorCalls, 1);
-  assert.equal(assembleCalls, 2);
-  assert.equal(signCalls, 2);
-  assert.equal(result.batch.componentCount, 4);
-  assert.equal(result.students.length, 2);
+  assert.equal(assembleCalls, 6);
+  assert.equal(signCalls, 6);
+  assert.equal(result.batch.studentCount, 2);
+  assert.equal(result.batch.componentCount, 6);
+  assert.equal(result.students.length, 6);
+  assert.deepEqual(
+    result.students.map((student: any) => `${student.studentId}:${student.paperType}`),
+    [
+      "student-001:diploma",
+      "student-001:transcript",
+      "student-001:recruiterSubmission",
+      "student-002:diploma",
+      "student-002:transcript",
+      "student-002:recruiterSubmission",
+    ],
+  );
+  assert.notEqual(result.students[0].credentialId, result.students[1].credentialId);
   assert.equal(
     result.students[0].vc["iu:merkleReceipt"].contractAddress,
     result.students[1].vc["iu:merkleReceipt"].contractAddress,

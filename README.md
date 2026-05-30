@@ -119,6 +119,7 @@ WARNING: `.env` values are bundled into the browser build. Do not use production
 
 ### OID4VCI Tunnel (optional)
 
+- Install the ngrok CLI first: `brew install ngrok`
 - `NGROK_DOMAIN` (required for `npm run oid4vci:tunnel`)
   - example: `my-issuer.ngrok-free.app` (host only) or `https://my-issuer.ngrok-free.app`
 - `NGROK_AUTHTOKEN` (optional if not already configured with `ngrok config add-authtoken`)
@@ -141,17 +142,21 @@ advertise `ES256` and emit the same `kid` as the registry DID document.
   - The verifier policy server also imports `ISSUER_DID` into its local trusted issuer set automatically, so the active repo issuer is trusted without duplicating it in the list
 - `VERIFIER_POLICY_RPC_URL`
   - Optional RPC override for verifier policy chain reads
+- `ISSUER_NAME`
+  - Optional wallet display name for OID4VCI JWT VCs
+  - Defaults to `International University` when unset
 
 ## Issue a VC (UI)
 
 1) Fill `.env` at repo root.
 2) Run `npm run dev`.
-3) Open the app, prepare the small batch, click **Issue Small Batch**, then download each student VC.
+3) Open the app, prepare the small batch, optionally upload PDF evidence for each credential component, click **Issue Small Batch**, then download each distinct student paper VC.
 
 Notes:
 - On-chain anchoring is done via an injected **EIP‑1193 provider** (MetaMask). If MetaMask is not available, issuing will fail at the anchoring step.
-- The current React issue tab is a development-sized batch issuer for `3-4` students.
-- Each student contributes exactly `diploma` and `transcript`, so the current dev flow issues `6-8` total components per batch.
+- The current React issue tab is a testing-sized batch issuer for `1` or more students.
+- Each student can submit `diploma`, `transcript`, and/or `recruiterSubmission`; the current dev flow issues one distinct paper credential for each uploaded PDF.
+- The demo form includes several credential type presets, including bachelor, master, doctoral, and professional certificate examples.
 - The issue tab still routes through the batch issuance core and deploys a fresh contract for that batch.
 - The generated VC includes:
   - `@context` with VC v2 + 3 custom contexts
@@ -170,7 +175,7 @@ Revocation rule:
 Operator flow:
 1. Issue a VC and keep the downloaded `vc.json`.
 2. Open the `Verify Credential` tab.
-3. Paste the VC JSON into the verifier input.
+3. Upload the VC JSON file into the verifier input.
 4. Enter a revoke reason.
 5. Click `Revoke Credential` and approve the MetaMask transaction from the contract owner wallet.
 6. Re-run verification for the same VC.

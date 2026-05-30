@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { spawn, type ChildProcess } from "node:child_process";
+import { formatChildProcessError } from "./processError.js";
 import { buildIssuerEnv, buildNgrokArgs, parseTunnelConfig } from "./tunnelConfig.js";
 
 function terminate(child: ChildProcess): void {
@@ -45,10 +46,10 @@ async function main(): Promise<void> {
   process.on("SIGTERM", () => shutdown(0, "Received SIGTERM, stopping child processes."));
 
   issuer.on("error", (err) => {
-    shutdown(1, `Issuer process error: ${String(err)}`);
+    shutdown(1, formatChildProcessError("Issuer", err));
   });
   ngrok.on("error", (err) => {
-    shutdown(1, `Ngrok process error: ${String(err)}`);
+    shutdown(1, formatChildProcessError("Ngrok", err));
   });
 
   issuer.on("exit", (code, signal) => {

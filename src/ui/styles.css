@@ -2,12 +2,29 @@
   color-scheme: light;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
     "Apple Color Emoji", "Segoe UI Emoji";
+  --page-bg: #f6f8fb;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-strong: #eef4ff;
+  --border: #d9e2ef;
+  --border-strong: #b9c7dc;
+  --text: #172033;
+  --text-muted: #5c6b82;
+  --text-soft: #73839a;
+  --primary: #1f6feb;
+  --primary-soft: #e9f2ff;
+  --success: #0f7a43;
+  --success-soft: #e8f8ef;
+  --danger: #b42318;
+  --danger-soft: #fff0ee;
+  --warning: #a16207;
+  --warning-soft: #fff7db;
 }
 
 body {
   margin: 0;
-  background: #0b1220;
-  color: #eef2ff;
+  background: var(--page-bg);
+  color: var(--text);
 }
 
 code {
@@ -28,7 +45,7 @@ code {
 
 .header p {
   margin: 0;
-  color: rgba(238, 242, 255, 0.8);
+  color: var(--text-muted);
 }
 
 .grid {
@@ -43,11 +60,11 @@ code {
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
-  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(25, 45, 75, 0.07);
 }
 
 .card h2 {
@@ -58,7 +75,7 @@ code {
 .card h3 {
   margin: 10px 0 8px;
   font-size: 14px;
-  color: rgba(238, 242, 255, 0.85);
+  color: var(--text-muted);
 }
 
 label {
@@ -66,19 +83,25 @@ label {
   flex-direction: column;
   gap: 6px;
   font-size: 12px;
-  color: rgba(238, 242, 255, 0.82);
+  color: var(--text-muted);
   margin-top: 10px;
 }
 
 input,
+select,
 textarea {
   width: 100%;
   box-sizing: border-box;
   padding: 10px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.35);
-  color: #eef2ff;
+  border: 1px solid var(--border-strong);
+  background: #ffffff;
+  color: var(--text);
+}
+
+select option {
+  background: #ffffff;
+  color: var(--text);
 }
 
 textarea {
@@ -112,15 +135,16 @@ textarea {
 
 button {
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.12);
-  color: #eef2ff;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-muted);
+  color: var(--text);
   padding: 10px 12px;
   cursor: pointer;
 }
 
 button:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--primary-soft);
+  border-color: #9bbcf2;
 }
 
 button:disabled {
@@ -129,13 +153,14 @@ button:disabled {
 }
 
 button.danger {
-  border-color: rgba(255, 80, 80, 0.35);
-  background: rgba(255, 80, 80, 0.12);
+  border-color: #f3b3ad;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .hint {
   font-size: 12px;
-  color: rgba(238, 242, 255, 0.7);
+  color: var(--text-soft);
 }
 
 .components {
@@ -144,19 +169,43 @@ button.danger {
 }
 
 .component {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
-  background: rgba(0, 0, 0, 0.18);
+  background: var(--surface-muted);
+}
+
+.component-input {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.credential-list {
+  display: grid;
+  gap: 12px;
+}
+
+.credential-item {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.credential-item button {
+  justify-self: start;
 }
 
 .error {
   margin: 12px 0 0;
   padding: 10px;
   border-radius: 10px;
-  background: rgba(255, 80, 80, 0.12);
-  border: 1px solid rgba(255, 80, 80, 0.22);
-  color: rgba(255, 220, 220, 0.95);
+  background: var(--danger-soft);
+  border: 1px solid #f3b3ad;
+  color: var(--danger);
   white-space: pre-wrap;
 }
 
@@ -166,7 +215,7 @@ button.danger {
   word-break: break-word;
   font-size: 12px;
   line-height: 1.45;
-  color: rgba(238, 242, 255, 0.92);
+  color: var(--text);
 }
 
 /* Tabs */
@@ -179,10 +228,10 @@ button.danger {
 .tab {
   padding: 12px 24px;
   border-radius: 10px 10px 0 0;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
   border-bottom: none;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(238, 242, 255, 0.7);
+  background: #edf3fb;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -190,14 +239,14 @@ button.danger {
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(238, 242, 255, 0.9);
+  background: var(--primary-soft);
+  color: var(--text);
 }
 
 .tab.active {
-  background: rgba(255, 255, 255, 0.06);
-  color: #eef2ff;
-  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
 }
 
 /* VC Input */
@@ -211,12 +260,14 @@ button.danger {
 
 /* Verify Button */
 .verify-btn {
-  background: linear-gradient(135deg, rgba(80, 180, 255, 0.2), rgba(140, 100, 255, 0.2));
-  border: 1px solid rgba(120, 160, 255, 0.3);
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #ffffff;
 }
 
 .verify-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, rgba(80, 180, 255, 0.3), rgba(140, 100, 255, 0.3));
+  background: #185abd;
+  border-color: #185abd;
 }
 
 /* Result Banner */
@@ -232,15 +283,15 @@ button.danger {
 }
 
 .result-banner.success {
-  background: linear-gradient(135deg, rgba(50, 205, 120, 0.15), rgba(80, 230, 150, 0.1));
-  border: 1px solid rgba(80, 230, 150, 0.3);
-  color: #7fffb0;
+  background: var(--success-soft);
+  border: 1px solid #9adbb8;
+  color: var(--success);
 }
 
 .result-banner.failure {
-  background: linear-gradient(135deg, rgba(255, 80, 80, 0.15), rgba(255, 120, 80, 0.1));
-  border: 1px solid rgba(255, 100, 100, 0.3);
-  color: #ff9090;
+  background: var(--danger-soft);
+  border: 1px solid #f3b3ad;
+  color: var(--danger);
 }
 
 .result-phase {
@@ -257,8 +308,8 @@ button.danger {
 }
 
 .result-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
 }
@@ -266,7 +317,7 @@ button.danger {
 .result-card h3 {
   margin: 0 0 10px;
   font-size: 13px;
-  color: rgba(238, 242, 255, 0.9);
+  color: var(--text);
 }
 
 .result-items {
@@ -285,18 +336,18 @@ button.danger {
 }
 
 .result-item.pass {
-  background: rgba(80, 230, 150, 0.1);
-  color: #7fffb0;
+  background: var(--success-soft);
+  color: var(--success);
 }
 
 .result-item.fail {
-  background: rgba(255, 100, 100, 0.1);
-  color: #ff9090;
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .result-item.info {
-  background: rgba(120, 160, 255, 0.1);
-  color: rgba(180, 200, 255, 0.9);
+  background: var(--primary-soft);
+  color: #215ba6;
 }
 
 .indicator {
@@ -307,16 +358,16 @@ button.danger {
 .result-error {
   margin-top: 8px;
   padding: 8px;
-  background: rgba(255, 80, 80, 0.1);
+  background: var(--danger-soft);
   border-radius: 6px;
   font-size: 11px;
-  color: #ff9090;
+  color: var(--danger);
 }
 
 .result-info {
   margin-top: 8px;
   font-size: 11px;
-  color: rgba(238, 242, 255, 0.6);
+  color: var(--text-soft);
 }
 
 .pickup-panel {
@@ -338,33 +389,33 @@ button.danger {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.12);
-  color: #eef2ff;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-muted);
+  color: var(--text);
   padding: 10px 12px;
   text-decoration: none;
 }
 
 .pickup-link-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--primary-soft);
 }
 
 .pickup-offer-uri {
   margin: 0;
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.24);
-  color: rgba(238, 242, 255, 0.9);
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 12px;
 }
 
 .pickup-qr {
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border: 1px dashed var(--border-strong);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #ffffff;
   width: fit-content;
   padding: 8px;
 }
@@ -374,16 +425,16 @@ button.danger {
 }
 
 .expiry-active {
-  color: #7fffb0;
+  color: var(--success);
   margin: 0;
 }
 
 .expiry-expiring {
-  color: #ffd36e;
+  color: var(--warning);
   margin: 0;
 }
 
 .expiry-expired {
-  color: #ff9090;
+  color: var(--danger);
   margin: 0;
 }
