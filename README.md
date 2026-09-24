@@ -1,5 +1,8 @@
 # IU-cert-university (IU-SmartCert VC Issuer + Verifier)
 
+> This project is based on [Original Repository](https://github.com/nathang0147/IU-cert-university), which was developed as part of the original author's thesis.
+> The work in this repository is independently developed as part of my own thesis, with modifications and extensions to the original work.
+
 Single-package **Vite + React** issuer and verifier UI that currently implements:
 
 - Reuse IU‑SmartCert logic: component hashing → Merkle tree + per‑component proofs → **anchor Merkle root on-chain**
