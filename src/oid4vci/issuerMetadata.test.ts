@@ -50,7 +50,7 @@ test("issuer metadata exposes deducible credential types for wallet", () => {
   assert.deepEqual(cfg.credential_definition.type, EXPECTED_SMARTCERT_TYPES);
   assert.ok(Array.isArray(cfg.types));
   assert.deepEqual(cfg.types, EXPECTED_SMARTCERT_TYPES);
-  assert.equal("credentials_supported" in metadata, false);
+  assert.ok(Array.isArray((metadata as any).credentials_supported));
 });
 
 test("legacy issuer metadata exposes draft11 credentials_supported", () => {

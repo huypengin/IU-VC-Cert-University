@@ -238,29 +238,26 @@ export async function verifyChainAnchoring(
                 };
             }
 
-            if (txReceipt.to?.toLowerCase() !== contractAddress.toLowerCase()) {
-                return {
-                    valid: false,
-                    anchorTxConfirmed: false,
-                    chainId,
-                    contractAddress,
-                    error: `Transaction was sent to ${txReceipt.to}, expected ${contractAddress}.`,
-                };
-            }
-
-            // Parse RootAnchored event
+            // Parse RootAnchored event from logs
+            // Note: Modern EVM transactions may be routed via EIP-7702 delegation, ERC-4337 bundlers,
+            // or multicall contracts, in which case txReceipt.to is the proxy/bundler rather than
+            // contractAddress directly. Therefore, we verify that contractAddress itself emitted the RootAnchored event.
             const iface = new ethers.Interface(ANCHOR_REGISTRY_ABI);
             const expectedRoot = merkleRoot.startsWith("0x") ? merkleRoot : `0x${merkleRoot}`;
             let rootFound = false;
 
             for (const log of txReceipt.logs) {
+                // Must be emitted by the specified contractAddress
+                if (log.address.toLowerCase() !== contractAddress.toLowerCase()) {
+                    continue;
+                }
                 try {
                     const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
                     if (parsed && parsed.name === "RootAnchored") {
                         const emittedRoot = parsed.args.merkleRoot as string;
                         if (emittedRoot.toLowerCase() === expectedRoot.toLowerCase()) {
                             rootFound = true;
-                            console.log(`[Verifier] ✓ RootAnchored event confirmed`);
+                            console.log(`[Verifier] ✓ RootAnchored event confirmed on ${contractAddress}`);
                             break;
                         }
                     }
@@ -270,12 +267,17 @@ export async function verifyChainAnchoring(
             }
 
             if (!rootFound) {
+                const targetMismatch = txReceipt.to && txReceipt.to.toLowerCase() !== contractAddress.toLowerCase();
+                const errorMsg = targetMismatch
+                    ? `Transaction ${anchorTx} was sent to ${txReceipt.to} and does not contain a RootAnchored event emitted by ${contractAddress} with merkleRoot ${expectedRoot}.`
+                    : `Transaction ${anchorTx} does not contain RootAnchored event with merkleRoot ${expectedRoot}.`;
+
                 return {
                     valid: false,
-                    anchorTxConfirmed: true,
+                    anchorTxConfirmed: false,
                     chainId,
                     contractAddress,
-                    error: `Transaction ${anchorTx} does not contain RootAnchored event with merkleRoot ${expectedRoot}.`,
+                    error: errorMsg,
                 };
             }
         }

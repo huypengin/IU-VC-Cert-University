@@ -104,6 +104,7 @@ temp/
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
+# bun.lock
 
 .github/*
 vc.json
@@ -115,3 +116,14 @@ AGENTS.MD
 CLAUDE.MD
 .worktrees/
 ./VC.result/*
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
