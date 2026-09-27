@@ -33,10 +33,20 @@ function buildIssuerMetadataBase() {
     signingAlg: getSigningAlg(),
     baseMetadata: {
       credential_issuer: baseUrl,
+      issuer: baseUrl,
+      authorization_servers: [baseUrl],
+      authorization_server: baseUrl,
       credential_endpoint: `${baseUrl}/oid4vci/credential`,
       token_endpoint: `${baseUrl}/oid4vci/token`,
       nonce_endpoint: `${baseUrl}/oid4vci/nonce`,
       jwks_uri: `${baseUrl}/.well-known/jwks.json`,
+      token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
+      grant_types_supported: [
+        "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+        "authorization_code",
+      ],
+      response_types_supported: ["token", "code"],
+      code_challenge_methods_supported: ["S256"],
     },
   };
 }
@@ -56,6 +66,11 @@ function buildIssuerMetadataDraft13() {
         types: vcTypes,
         cryptographic_binding_methods_supported: ["did:web", "did:jwk", "did:key", "did:example"],
         credential_signing_alg_values_supported: [signingAlg],
+        proof_types_supported: {
+          jwt: {
+            proof_signing_alg_values_supported: ["ES256", "EdDSA", "RS256"],
+          },
+        },
         display: [
           {
             name: "IU Bachelor Degree",
@@ -66,7 +81,7 @@ function buildIssuerMetadataDraft13() {
         ],
       },
     },
-        credentials_supported: [
+    credentials_supported: [
       {
         id: "IU_Degree_JWTVC",
         format: "jwt_vc_json",
@@ -84,6 +99,24 @@ function buildIssuerMetadataDraft13() {
         ],
       },
     ],
+  };
+}
+
+export function buildOAuthAuthorizationServerMetadata() {
+  const { baseUrl } = buildIssuerMetadataBase();
+
+  return {
+    issuer: baseUrl,
+    authorization_endpoint: `${baseUrl}/oid4vci/credential-offer`,
+    token_endpoint: `${baseUrl}/oid4vci/token`,
+    token_endpoint_auth_methods_supported: ["none", "client_secret_post", "client_secret_basic"],
+    grant_types_supported: [
+      "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+      "authorization_code",
+    ],
+    response_types_supported: ["token", "code"],
+    jwks_uri: `${baseUrl}/.well-known/jwks.json`,
+    code_challenge_methods_supported: ["S256"],
   };
 }
 
@@ -112,6 +145,10 @@ export function getIssuerMetadata(_req: Request, res: Response): void {
 
 export function getIssuerMetadataDraft11(_req: Request, res: Response): void {
   res.json(buildIssuerMetadataDraft11());
+}
+
+export function getOAuthAuthorizationServerMetadata(_req: Request, res: Response): void {
+  res.json(buildOAuthAuthorizationServerMetadata());
 }
 
 // ─── GET /.well-known/jwks.json ─────────────────────────────────────────────

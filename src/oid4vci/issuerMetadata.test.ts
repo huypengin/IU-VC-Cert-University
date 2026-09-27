@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getIssuerMetadata, getIssuerMetadataDraft11 } from "./oid4vci.controller.js";
+import {
+  getIssuerMetadata,
+  getIssuerMetadataDraft11,
+  getOAuthAuthorizationServerMetadata,
+} from "./oid4vci.controller.js";
 import { initKeys } from "./keys.js";
 
 const EXPECTED_SMARTCERT_TYPES = [
@@ -51,6 +55,8 @@ test("issuer metadata exposes deducible credential types for wallet", () => {
   assert.ok(Array.isArray(cfg.types));
   assert.deepEqual(cfg.types, EXPECTED_SMARTCERT_TYPES);
   assert.ok(Array.isArray((metadata as any).credentials_supported));
+  assert.equal(typeof (metadata as any).issuer, "string");
+  assert.equal((metadata as any).issuer, (metadata as any).credential_issuer);
 });
 
 test("legacy issuer metadata exposes draft11 credentials_supported", () => {
@@ -106,4 +112,29 @@ test("issuer metadata advertises ES256 when registry ES256 key is configured", a
   } finally {
     process.env = original;
   }
+});
+
+test("oauth authorization server metadata conforms to RFC 8414 with issuer", () => {
+  let payload: unknown;
+  const res = {
+    json(data: unknown) {
+      payload = data;
+      return this;
+    },
+  } as any;
+
+  getOAuthAuthorizationServerMetadata({} as any, res);
+
+  const metadata = payload as {
+    issuer: string;
+    token_endpoint: string;
+    grant_types_supported: string[];
+    response_types_supported: string[];
+  };
+
+  assert.equal(typeof metadata.issuer, "string");
+  assert.ok(metadata.issuer.startsWith("http"));
+  assert.equal(metadata.token_endpoint, `${metadata.issuer}/oid4vci/token`);
+  assert.ok(metadata.grant_types_supported.includes("urn:ietf:params:oauth:grant-type:pre-authorized_code"));
+  assert.ok(metadata.response_types_supported.includes("token"));
 });

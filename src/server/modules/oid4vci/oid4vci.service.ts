@@ -93,6 +93,7 @@ export function createCredentialOffer(
   return {
     credential_issuer: baseUrl,
     credential_configuration_ids: ["IU_Degree_JWTVC"],
+    credentials: ["IU_Degree_JWTVC"],
     grants: {
       "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
         "pre-authorized_code": code,

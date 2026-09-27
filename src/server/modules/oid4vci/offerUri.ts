@@ -1,6 +1,7 @@
 export interface CredentialOfferPayload {
   credential_issuer: string;
   credential_configuration_ids: string[];
+  credentials?: string[];
   grants: Record<string, unknown>;
 }
 
