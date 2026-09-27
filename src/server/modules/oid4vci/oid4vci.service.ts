@@ -36,6 +36,13 @@ interface PreAuthEntry {
   subjectId: string;
   credentialConfigId: string;
   uploadedVc?: UploadedVcSnapshot;
+  tokenResponse?: {
+    access_token: string;
+    token_type: "Bearer";
+    expires_in: number;
+    c_nonce: string;
+    c_nonce_expires_in: number;
+  };
 }
 
 interface TokenEntry {
@@ -168,9 +175,18 @@ export function exchangeCodeForToken(code: string): {
 } {
   const entry = preAuthCodes.get(code);
   if (!entry) throw new OID4VCIError("invalid_grant", "Unknown pre-authorized code");
-  if (entry.used) throw new OID4VCIError("invalid_grant", "Pre-authorized code already used");
   if (Date.now() > entry.expiresAt)
     throw new OID4VCIError("invalid_grant", "Pre-authorized code expired");
+
+  // Idempotent exchange: if already exchanged within TTL, return the cached token.
+  // This allows retries, re-scans, and handles client frameworks that fire duplicate token requests.
+  if (entry.used && entry.tokenResponse) {
+    return entry.tokenResponse;
+  }
+
+  if (entry.used) {
+    throw new OID4VCIError("invalid_grant", "Pre-authorized code already used");
+  }
 
   // Mark used
   entry.used = true;
@@ -189,13 +205,17 @@ export function exchangeCodeForToken(code: string): {
   // Generate c_nonce for proof-of-possession
   const nonce = createNonce();
 
-  return {
+  const tokenResponse = {
     access_token: token,
-    token_type: "Bearer",
+    token_type: "Bearer" as const,
     expires_in: TOKEN_TTL_SEC,
     c_nonce: nonce,
     c_nonce_expires_in: NONCE_TTL_SEC,
   };
+
+  entry.tokenResponse = tokenResponse;
+
+  return tokenResponse;
 }
 
 // ─── Token validation ───────────────────────────────────────────────────────

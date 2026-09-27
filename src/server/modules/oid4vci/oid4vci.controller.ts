@@ -66,6 +66,24 @@ function buildIssuerMetadataDraft13() {
         ],
       },
     },
+        credentials_supported: [
+      {
+        id: "IU_Degree_JWTVC",
+        format: "jwt_vc_json",
+        types: vcTypes,
+        credential_definition: {
+          type: vcTypes,
+        },
+        display: [
+          {
+            name: "IU Bachelor Degree",
+            locale: "en-US",
+            description:
+              "A verifiable credential for an IU Bachelor Degree, anchored on-chain via Merkle tree.",
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -163,16 +181,26 @@ export function postNonce(_req: Request, res: Response): void {
 
 export function postToken(req: Request, res: Response): void {
   try {
-    // Support both application/x-www-form-urlencoded and JSON
+    // Support both application/x-www-form-urlencoded and JSON, plus query fallback and trimming
+    const rawCode =
+      req.body?.["pre-authorized_code"] ??
+      req.body?.pre_authorized_code ??
+      req.query?.["pre-authorized_code"] ??
+      req.query?.pre_authorized_code;
+
     const preAuthorizedCode: string | undefined =
-      req.body?.["pre-authorized_code"] ?? req.body?.pre_authorized_code;
+      typeof rawCode === "string" ? rawCode.trim() : undefined;
+
+    const rawGrant =
+      req.body?.grant_type ?? req.query?.grant_type;
 
     const grantType: string | undefined =
-      req.body?.grant_type;
+      typeof rawGrant === "string" ? rawGrant.trim() : undefined;
 
     if (
       grantType &&
-      grantType !== "urn:ietf:params:oauth:grant-type:pre-authorized_code"
+      grantType !== "urn:ietf:params:oauth:grant-type:pre-authorized_code" &&
+      grantType !== "pre-authorized_code"
     ) {
       res.status(400).json({
         error: "unsupported_grant_type",
