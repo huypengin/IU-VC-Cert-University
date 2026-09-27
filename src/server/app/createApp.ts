@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import express, { Router, type Express } from "express";
 import cors from "cors";
 
@@ -24,5 +26,22 @@ export function createApp(options: CreateAppOptions): Express {
   options.register?.(router);
   app.use(router);
 
+  // In production container, serve Vite static frontend if dist/ exists
+  const distDir = path.resolve(process.cwd(), "dist");
+  if (fs.existsSync(distDir)) {
+    app.use(express.static(distDir));
+    app.get("*", (req, res, next) => {
+      if (
+        req.path.startsWith("/oid4vci") ||
+        req.path.startsWith("/.well-known") ||
+        req.path.startsWith("/api")
+      ) {
+        return next();
+      }
+      res.sendFile(path.join(distDir, "index.html"));
+    });
+  }
+
   return app;
 }
+

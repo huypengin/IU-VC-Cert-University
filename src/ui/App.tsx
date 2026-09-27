@@ -70,6 +70,13 @@ export default function App() {
   const [validFrom, setValidFrom] = useState(isoNow());
   const [issueChainId, setIssueChainId] = useState(getEnv("CHAIN_ID"));
   const [issueRpcUrl, setIssueRpcUrl] = useState("");
+  const [signingKey, setSigningKey] = useState(() => {
+    try {
+      return getEnv("ISSUER_ED25519_PRIVATE_KEY", "");
+    } catch {
+      return "";
+    }
+  });
   const [issueBatchState, setIssueBatchState] = useState(createDefaultIssueBatchState());
 
   const [busy, setBusy] = useState(false);
@@ -101,7 +108,7 @@ export default function App() {
   const [pickupNowMs, setPickupNowMs] = useState(Date.now());
 
   const canIssue = useMemo(() => {
-    if (!validFrom || !issueChainId || issueBatchState.students.length < 1) {
+    if (!validFrom || !issueChainId || issueBatchState.students.length < 1 || !signingKey.trim()) {
       return false;
     }
 
@@ -389,9 +396,22 @@ export default function App() {
                   placeholder="https://..."
                 />
               </label>
+              <label>
+                Signing Key (Ed25519 Private Key)
+                <input
+                  type="password"
+                  value={signingKey}
+                  onChange={(e) => {
+                    setSigningKey(e.target.value);
+                    if (typeof window !== "undefined") {
+                      sessionStorage.setItem("ISSUER_ED25519_PRIVATE_KEY", e.target.value);
+                    }
+                  }}
+                  placeholder="32-byte hex or base64 key (kept in browser only)"
+                />
+              </label>
               <p className="hint">
-                Development mode issues a test batch of 1 or more students. One click creates a
-                distinct VC for each uploaded paper PDF.
+                Development mode issues a test batch of 1 or more students. Signing key remains in browser memory and is never sent to the server.
               </p>
             </section>
 
