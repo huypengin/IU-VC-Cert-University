@@ -15,12 +15,21 @@ test("getRevocationKeyFromReceipt returns the first mandatory component hash", (
   assert.equal(getRevocationKeyFromReceipt(receipt), "0x11");
 });
 
-test("getRevocationKeyFromReceipt throws when no mandatory component exists", () => {
+test("getRevocationKeyFromReceipt falls back to first component hash when no mandatory component exists", () => {
+  assert.equal(
+    getRevocationKeyFromReceipt({
+      componentsProofs: [{ name: "transcript", mandatory: false, hash: "0x02", proof: [] }],
+    } as any),
+    "0x02",
+  );
+});
+
+test("getRevocationKeyFromReceipt throws when no component hash exists", () => {
   assert.throws(
     () =>
       getRevocationKeyFromReceipt({
-        componentsProofs: [{ name: "transcript", mandatory: false, hash: "0x02", proof: [] }],
+        componentsProofs: [],
       } as any),
-    /mandatory component/i,
+    /component hash/i,
   );
 });

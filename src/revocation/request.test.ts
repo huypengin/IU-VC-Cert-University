@@ -36,7 +36,35 @@ test("buildRevocationRequestFromVc extracts chain contract and first mandatory r
   });
 });
 
-test("buildRevocationRequestFromVc rejects a VC without a mandatory component proof", async () => {
+test("buildRevocationRequestFromVc falls back to first component when no mandatory component exists", async () => {
+  const result = await buildRevocationRequestFromVc({
+    evidence: [
+      {
+        type: ["IUSmartCertMerkleReceipt"],
+        chainId: "eip155:11155111",
+        contractAddress: "0x123",
+        merkleRoot: `0x${"22".repeat(32)}`,
+        anchorTx: `0x${"33".repeat(32)}`,
+        leafEncoding: "credentialID||componentType||content",
+        merkleTreeSpec: {
+          leafHashAlg: "sha256",
+          nodeHashAlg: "keccak256",
+          sortPairs: true,
+          sortLeaves: true,
+        },
+        componentsProofs: [{ name: "transcript", mandatory: false, hash: "0x02", proof: [] }],
+      },
+    ],
+  });
+
+  assert.deepEqual(result, {
+    chainId: "eip155:11155111",
+    contractAddress: "0x123",
+    revocationKey: "0x02",
+  });
+});
+
+test("buildRevocationRequestFromVc rejects a VC without any component proofs", async () => {
   await assert.rejects(
     () =>
       buildRevocationRequestFromVc({
@@ -54,10 +82,10 @@ test("buildRevocationRequestFromVc rejects a VC without a mandatory component pr
               sortPairs: true,
               sortLeaves: true,
             },
-            componentsProofs: [{ name: "transcript", mandatory: false, hash: "0x02", proof: [] }],
+            componentsProofs: [],
           },
         ],
       }),
-    /mandatory component/i,
+    /component hash/i,
   );
 });
